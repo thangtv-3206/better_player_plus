@@ -935,7 +935,7 @@ class BetterPlayerController {
     if (_isAutomaticPlayPauseHandled()) {
       if (betterPlayerConfiguration.playerVisibilityChangedBehavior != null) {
         betterPlayerConfiguration
-            .playerVisibilityChangedBehavior!(visibilityFraction);
+            .playerVisibilityChangedBehavior!(this, visibilityFraction);
       } else {
         if (visibilityFraction == 0) {
           _wasPlayingBeforePause ??= isPlaying();

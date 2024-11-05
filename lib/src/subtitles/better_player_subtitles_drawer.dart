@@ -7,14 +7,14 @@ import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart
 class BetterPlayerSubtitlesDrawer extends StatefulWidget {
   final List<BetterPlayerSubtitle> subtitles;
   final BetterPlayerController betterPlayerController;
-  final BetterPlayerSubtitlesConfiguration? betterPlayerSubtitlesConfiguration;
+  final BetterPlayerSubtitlesConfiguration betterPlayerSubtitlesConfiguration;
   final Stream<bool> playerVisibilityStream;
 
   const BetterPlayerSubtitlesDrawer({
     Key? key,
     required this.subtitles,
     required this.betterPlayerController,
-    this.betterPlayerSubtitlesConfiguration,
+    required this.betterPlayerSubtitlesConfiguration,
     required this.playerVisibilityStream,
   }) : super(key: key);
 
@@ -47,11 +47,7 @@ class _BetterPlayerSubtitlesDrawerState
       });
     });
 
-    if (widget.betterPlayerSubtitlesConfiguration != null) {
-      _configuration = widget.betterPlayerSubtitlesConfiguration;
-    } else {
-      _configuration = setupDefaultConfiguration();
-    }
+    _configuration = widget.betterPlayerSubtitlesConfiguration;
 
     widget.betterPlayerController.videoPlayerController!
         .addListener(_updateState);
@@ -164,7 +160,4 @@ class _BetterPlayerSubtitlesDrawerState
     );
   }
 
-  BetterPlayerSubtitlesConfiguration setupDefaultConfiguration() {
-    return const BetterPlayerSubtitlesConfiguration();
-  }
 }

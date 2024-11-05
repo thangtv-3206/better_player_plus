@@ -66,7 +66,7 @@ class BetterPlayerConfiguration {
   final Function(BetterPlayerEvent)? eventListener;
 
   ///Defines subtitles configuration
-  final BetterPlayerSubtitlesConfiguration subtitlesConfiguration;
+  final BetterPlayerSubtitlesConfiguration? subtitlesConfiguration;
 
   ///Defines controls configuration
   final BetterPlayerControlsConfiguration controlsConfiguration;
@@ -80,7 +80,7 @@ class BetterPlayerConfiguration {
   final double rotation;
 
   ///Defines function which will react on player visibility changed
-  final Function(double visibilityFraction)? playerVisibilityChangedBehavior;
+  final Function(BetterPlayerController controller, double visibilityFraction)? playerVisibilityChangedBehavior;
 
   ///Defines translations used in player. If null, then default english translations
   ///will be used.
@@ -144,7 +144,7 @@ class BetterPlayerConfiguration {
     ],
     this.routePageBuilder,
     this.eventListener,
-    this.subtitlesConfiguration = const BetterPlayerSubtitlesConfiguration(),
+    this.subtitlesConfiguration = null,
     this.controlsConfiguration = const BetterPlayerControlsConfiguration(),
     this.fit = BoxFit.fill,
     this.rotation = 0,
@@ -181,7 +181,7 @@ class BetterPlayerConfiguration {
     BetterPlayerControlsConfiguration? controlsConfiguration,
     BoxFit? fit,
     double? rotation,
-    Function(double visibilityFraction)? playerVisibilityChangedBehavior,
+    Function(BetterPlayerController controller, double visibilityFraction)? playerVisibilityChangedBehavior,
     List<BetterPlayerTranslations>? translations,
     bool? autoDetectFullscreenDeviceOrientation,
     bool? handleLifecycle,

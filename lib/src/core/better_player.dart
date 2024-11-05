@@ -52,7 +52,7 @@ class _BetterPlayerState extends State<BetterPlayer>
   bool _isFullScreen = false;
 
   ///State of navigator on widget created
-  late NavigatorState _navigatorState;
+  late NavigatorState? _navigatorState;
 
   ///Flag which determines if widget has initialized
   bool _initialized = false;
@@ -69,7 +69,7 @@ class _BetterPlayerState extends State<BetterPlayer>
   @override
   void didChangeDependencies() {
     if (!_initialized) {
-      final navigator = Navigator.of(context);
+      final navigator = Navigator.maybeOf(context);
       setState(() {
         _navigatorState = navigator;
       });
@@ -103,7 +103,7 @@ class _BetterPlayerState extends State<BetterPlayer>
     ///state.
     if (_isFullScreen) {
       WakelockPlus.disable();
-      _navigatorState.maybePop();
+      _navigatorState?.maybePop();
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
           overlays: _betterPlayerConfiguration.systemOverlaysAfterFullScreen);
       SystemChrome.setPreferredOrientations(
@@ -151,7 +151,7 @@ class _BetterPlayerState extends State<BetterPlayer>
           .postEvent(BetterPlayerEvent(BetterPlayerEventType.openFullscreen));
       await _pushFullScreenWidget(context);
     } else if (_isFullScreen) {
-      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.maybeOf(context, rootNavigator: true)?.pop();
       _isFullScreen = false;
       controller
           .postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreen));
