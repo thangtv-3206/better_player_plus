@@ -478,7 +478,7 @@ class BetterPlayerController {
         if (!file.existsSync()) {
           BetterPlayerUtils.log(
               "File ${file.path} doesn't exists. This may be because "
-              "you're acessing file from native path and Flutter doesn't "
+              "you're accessing file from native path and Flutter doesn't "
               "recognize this path.");
         }
 
@@ -712,6 +712,14 @@ class BetterPlayerController {
       throw StateError("The data source has not been initialized");
     }
     return videoPlayerController!.value.isPlaying;
+  }
+
+  ///Flag which determines whenever player is in PIP mode or not.
+  bool? isPipMode() {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return videoPlayerController!.value.isPip;
   }
 
   ///Flag which determines whenever player is loading video data or not.
