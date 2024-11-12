@@ -478,7 +478,7 @@ class BetterPlayerController {
         if (!file.existsSync()) {
           BetterPlayerUtils.log(
               "File ${file.path} doesn't exists. This may be because "
-              "you're acessing file from native path and Flutter doesn't "
+              "you're accessing file from native path and Flutter doesn't "
               "recognize this path.");
         }
 
@@ -714,6 +714,14 @@ class BetterPlayerController {
     return videoPlayerController!.value.isPlaying;
   }
 
+  ///Flag which determines whenever player is in PIP mode or not.
+  bool? isPipMode() {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    return videoPlayerController!.value.isPip;
+  }
+
   ///Flag which determines whenever player is loading video data or not.
   bool? isBuffering() {
     if (videoPlayerController == null) {
@@ -847,9 +855,9 @@ class BetterPlayerController {
     if (_nextVideoTimer == null) {
       if (betterPlayerPlaylistConfiguration == null) {
         BetterPlayerUtils.log(
-            "BettterPlayerPlaylistConifugration has not been set!");
+            "BetterPlayerPlaylistConfiguration has not been set!");
         throw StateError(
-            "BettterPlayerPlaylistConifugration has not been set!");
+            "BetterPlayerPlaylistConfiguration has not been set!");
       }
 
       _nextVideoTime =
@@ -1085,12 +1093,14 @@ class BetterPlayerController {
           return;
         }
         final Offset position = renderBox.localToGlobal(Offset.zero);
-        return videoPlayerController?.enablePictureInPicture(
+        await videoPlayerController?.enablePictureInPicture(
           left: position.dx,
           top: position.dy,
           width: renderBox.size.width,
           height: renderBox.size.height,
         );
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
+        return;
       } else {
         BetterPlayerUtils.log("Unsupported PiP in current platform.");
       }
