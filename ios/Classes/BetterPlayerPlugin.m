@@ -404,6 +404,11 @@ bool _remoteCommandsInitialized = false;
             double width = [argsMap[@"width"] doubleValue];
             double height = [argsMap[@"height"] doubleValue];
             [player enablePictureInPicture:CGRectMake(left, top, width, height)];
+            // move to background after 1 second to make sure PIP is started
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                UIApplication *app = [UIApplication sharedApplication];
+                [app performSelector:@selector(suspend)];
+            });
             result(nil);
         } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]){
             if (@available(iOS 9.0, *)){
