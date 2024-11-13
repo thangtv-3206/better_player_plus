@@ -1029,7 +1029,9 @@ class BetterPlayerController {
       }
       if (appLifecycleState == AppLifecycleState.paused) {
         _wasPlayingBeforePause ??= isPlaying();
-        pause();
+        if (isPipMode() != true) {
+          pause();
+        }
       }
     }
   }
