@@ -17,7 +17,9 @@ NSMutableDictionary*  _artworkImageDict;
 CacheManager* _cacheManager;
 int texturesCount = -1;
 BetterPlayer* _notificationPlayer;
+bool _isLoadingCommandCenterImage = false;
 bool _remoteCommandsInitialized = false;
+bool _isCommandCenterButtonsEnabled = true;
 
 
 #pragma mark - FlutterPlugin protocol
@@ -85,9 +87,43 @@ bool _remoteCommandsInitialized = false;
     result(@{@"textureId" : @(textureId)});
 }
 
+- (void)addObservers:(BetterPlayer*) player {
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(itemDidPlayToEndTime:)
+                                                 name:AVPlayerItemDidPlayToEndTimeNotification
+                                               object:[player player].currentItem];
+}
+
+- (void)itemDidPlayToEndTime:(NSNotification*) notification {
+    // Delay 1 second for users to see the video is finished.
+    // - Without this delay, the progress bar will run like "-0:01" then everything disappear.
+    // - With this delay, the progress bar will run like "-0:01" then "-0:00"
+    // and Pause button switched to Play button(it mean the player had stopped)
+    // then clear all buttons and progress bar.
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        // Disable Play/pause/seek in control center
+        MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+        [commandCenter.changePlaybackPositionCommand setEnabled:NO];
+        [commandCenter.togglePlayPauseCommand setEnabled:NO];
+        [commandCenter.playCommand setEnabled:NO];
+        [commandCenter.pauseCommand setEnabled:NO];
+        _isCommandCenterButtonsEnabled = false;
+
+        // Must set those Properties with 0 to make progress bar look like it is disabled.
+        NSMutableDictionary * currentNowPlayingInfoDict = [[MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo mutableCopy];
+        [currentNowPlayingInfoDict setObject:@0 forKey:MPMediaItemPropertyPlaybackDuration];
+        [currentNowPlayingInfoDict setObject:@0 forKey:MPNowPlayingInfoPropertyIsLiveStream];
+        [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = currentNowPlayingInfoDict;
+
+        // hide PiP buttons
+        // [_notificationPlayer setIsDisplayPipButtons:false];
+    });
+}
+
 - (void) setupRemoteNotification :(BetterPlayer*) player{
     _notificationPlayer = player;
-    [self stopOtherUpdateListener:player];
+    [self stopAllUpdateListener:player];
     NSDictionary* dataSource = [_dataSourceDict objectForKey:[self getTextureId:player]];
     BOOL showNotification = false;
     id showNotificationObject = [dataSource objectForKey:@"showNotification"];
@@ -112,16 +148,20 @@ bool _remoteCommandsInitialized = false;
 }
 
 - (void) setRemoteCommandsNotificationNotActive{
-    if ([_players count] == 0) {
-        [[AVAudioSession sharedInstance] setActive:false error:nil];
-    }
-
+    [[AVAudioSession sharedInstance] setActive:false error:nil];
     [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
 }
 
+- (void) removeCommandCenterTargetHandlers{
+    MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
+    [commandCenter.togglePlayPauseCommand removeTarget:nil];
+    [commandCenter.playCommand removeTarget:nil];
+    [commandCenter.pauseCommand removeTarget:nil];
+    [commandCenter.changePlaybackPositionCommand removeTarget:nil];
+}
 
-- (void) setupRemoteCommands:(BetterPlayer*)player  {
-    if (_remoteCommandsInitialized){
+- (void) setupRemoteCommands:(BetterPlayer*) player {
+    if (_remoteCommandsInitialized && _isCommandCenterButtonsEnabled){
         return;
     }
     MPRemoteCommandCenter *commandCenter = [MPRemoteCommandCenter sharedCommandCenter];
@@ -130,10 +170,14 @@ bool _remoteCommandsInitialized = false;
     [commandCenter.pauseCommand setEnabled:YES];
     [commandCenter.nextTrackCommand setEnabled:NO];
     [commandCenter.previousTrackCommand setEnabled:NO];
+    _isCommandCenterButtonsEnabled = true;
     if (@available(iOS 9.1, *)) {
         [commandCenter.changePlaybackPositionCommand setEnabled:YES];
     }
 
+    // Remove old target handlers
+    [self removeCommandCenterTargetHandlers];
+    
     [commandCenter.togglePlayPauseCommand addTargetWithHandler: ^MPRemoteCommandHandlerStatus(MPRemoteCommandEvent * _Nonnull event) {
         if (_notificationPlayer != [NSNull null]){
             if (_notificationPlayer.isPlaying){
@@ -167,7 +211,6 @@ bool _remoteCommandsInitialized = false;
                 MPChangePlaybackPositionCommandEvent * playbackEvent = (MPChangePlaybackRateCommandEvent * ) event;
                 CMTime time = CMTimeMake(playbackEvent.positionTime, 1);
                 int64_t millis = [BetterPlayerTimeUtils FLTCMTimeToMillis:(time)];
-                [_notificationPlayer seekTo: millis];
                 _notificationPlayer.eventSink(@{@"event" : @"seek", @"position": @(millis)});
             }
             return MPRemoteCommandHandlerStatusSuccess;
@@ -176,17 +219,39 @@ bool _remoteCommandsInitialized = false;
     _remoteCommandsInitialized = true;
 }
 
-- (void) setupRemoteCommandNotification:(BetterPlayer*)player, NSString* title, NSString* author , NSString* imageUrl{
-    float positionInSeconds = player.position /1000;
-    float durationInSeconds = player.duration/ 1000;
-
+- (void) setupRemoteCommandNotification:(BetterPlayer*)player, NSString* title, NSString* author , NSString* imageUrl {
+    // This function is always called double times at the end of video due to the default behavior of AVPlayer
+    // This check is used to prevent the latest call.
+    if (player.duration != 0 && player.position >= player.duration - 500) {
+        return;
+    }
+    float positionInSeconds = player.position / 1000;
+    float durationInSeconds = player.duration / 1000;
+    BOOL isPlayingTheLastSecond = player.position >= player.duration - 1000;
 
     NSMutableDictionary * nowPlayingInfoDict = [@{MPMediaItemPropertyArtist: author,
                                                   MPMediaItemPropertyTitle: title,
                                                   MPNowPlayingInfoPropertyElapsedPlaybackTime: [ NSNumber numberWithFloat : positionInSeconds],
                                                   MPMediaItemPropertyPlaybackDuration: [NSNumber numberWithFloat:durationInSeconds],
-                                                  MPNowPlayingInfoPropertyPlaybackRate: @1,
+                                                  // Because the progress bar can auto jump to the last seek/pause/play position after reaching the end of video
+                                                  // (its default behavior can auto update the progress)
+                                                  // We need to set playback rate of Control center = 0 to stop that progress.
+                                                  MPNowPlayingInfoPropertyPlaybackRate: isPlayingTheLastSecond ? @0 : @1,
     } mutableCopy];
+
+    // The position always stop at "-0:01",
+    // and the progress bar is also stopped at this time(the playback rate already set to 0),
+    // so we need to update the progress bar manually
+    if (isPlayingTheLastSecond) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
+                                    // Delay 0.5s for better animation
+                                    (int64_t)(0.5 * NSEC_PER_SEC)),
+                       dispatch_get_main_queue(), ^{
+            [nowPlayingInfoDict setObject:[NSNumber numberWithFloat:durationInSeconds]
+                                forKey:MPNowPlayingInfoPropertyElapsedPlaybackTime];
+            [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = nowPlayingInfoDict;
+        });
+    }
 
     if (imageUrl != [NSNull null]){
         NSString* key =  [self getTextureId:player];
@@ -198,8 +263,16 @@ bool _remoteCommandsInitialized = false;
                 [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = nowPlayingInfoDict;
 
             } else {
+                // In this case, the image hasn't been cached yet, so just displaying other info immediately
+                // then update the image later after it is loaded
+                [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = nowPlayingInfoDict;
+
+                if(_isLoadingCommandCenterImage){
+                    return;
+                }
                 dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
                 dispatch_async(queue, ^{
+                    _isLoadingCommandCenterImage = true;
                     @try{
                         UIImage * tempArtworkImage = nil;
                         if ([imageUrl rangeOfString:@"http"].location == NSNotFound){
@@ -208,17 +281,23 @@ bool _remoteCommandsInitialized = false;
                             NSURL *nsImageUrl =[NSURL URLWithString:imageUrl];
                             tempArtworkImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:nsImageUrl]];
                         }
-                        if(tempArtworkImage)
-                        {
+
+                        NSDictionary* dataSource = [_dataSourceDict objectForKey:[self getTextureId:_notificationPlayer]];
+                        NSString* currentImageUrl = dataSource[@"imageUrl"];
+
+                        if(tempArtworkImage && [imageUrl isEqualToString: currentImageUrl])                        {
                             MPMediaItemArtwork* artworkImage = [[MPMediaItemArtwork alloc] initWithImage: tempArtworkImage];
                             [_artworkImageDict setObject:artworkImage forKey:key];
-                            [nowPlayingInfoDict setObject:artworkImage forKey:MPMediaItemPropertyArtwork];
+
+                            NSMutableDictionary * currentNowPlayingInfoDict = [[MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo mutableCopy];
+                            [currentNowPlayingInfoDict setObject:artworkImage forKey:MPMediaItemPropertyArtwork];
+                            [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = currentNowPlayingInfoDict;
                         }
-                        [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = nowPlayingInfoDict;
                     }
                     @catch(NSException *exception) {
 
                     }
+                    _isLoadingCommandCenterImage = false;
                 });
             }
         }
@@ -227,7 +306,16 @@ bool _remoteCommandsInitialized = false;
     }
 }
 
-
+//- (BOOL) isLiveStream:(BetterPlayer*) player {
+//    NSDictionary* dataSource = [_dataSourceDict objectForKey:[self getTextureId:player]];
+//
+//    BOOL isLiveStream = false;
+//    id isLiveStreamObject = [dataSource objectForKey:@"isLiveStream"];
+//    if (isLiveStreamObject != [NSNull null]) {
+//        isLiveStream = [[dataSource objectForKey:@"isLiveStream"] boolValue];
+//    }
+//    return isLiveStream;
+//}
 
 - (NSString*) getTextureId: (BetterPlayer*) player{
     NSArray* temp = [_players allKeysForObject: player];
@@ -235,7 +323,7 @@ bool _remoteCommandsInitialized = false;
     return key;
 }
 
-- (void) setupUpdateListener:(BetterPlayer*)player,NSString* title, NSString* author,NSString* imageUrl  {
+- (void) setupUpdateListener:(BetterPlayer*)player, NSString* title, NSString* author, NSString* imageUrl {
     id _timeObserverId = [player.player addPeriodicTimeObserverForInterval:CMTimeMake(1, 1) queue:NULL usingBlock:^(CMTime time){
         [self setupRemoteCommandNotification:player, title, author, imageUrl];
     }];
@@ -249,6 +337,7 @@ bool _remoteCommandsInitialized = false;
     if (player == _notificationPlayer){
         _notificationPlayer = NULL;
         _remoteCommandsInitialized = false;
+        _isLoadingCommandCenterImage = false;
     }
     NSString* key =  [self getTextureId:player];
     id _timeObserverId = _timeObserverIdDict[key];
@@ -261,13 +350,8 @@ bool _remoteCommandsInitialized = false;
     [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo =  @{};
 }
 
-- (void) stopOtherUpdateListener: (BetterPlayer*) player{
-    NSString* currentPlayerTextureId = [self getTextureId:player];
+- (void) stopAllUpdateListener: (BetterPlayer*) player{
     for (NSString* textureId in _timeObserverIdDict.allKeys) {
-        if (currentPlayerTextureId == textureId){
-            continue;
-        }
-
         id timeObserverId = [_timeObserverIdDict objectForKey:textureId];
         BetterPlayer* playerToRemoveListener = [_players objectForKey:textureId];
         [playerToRemoveListener.player removeTimeObserver: timeObserverId];
@@ -275,7 +359,6 @@ bool _remoteCommandsInitialized = false;
     [_timeObserverIdDict removeAllObjects];
 
 }
-
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
 
@@ -293,12 +376,21 @@ bool _remoteCommandsInitialized = false;
         [self onPlayerSetup:player result:result];
     } else {
         NSDictionary* argsMap = call.arguments;
+        id textureIdObject = [argsMap objectForKey:@"textureId"];
+        
+        if (textureIdObject == [NSNull null]) {
+            return;
+        }
         int64_t textureId = ((NSNumber*)argsMap[@"textureId"]).unsignedIntegerValue;
         BetterPlayer* player = _players[@(textureId)];
         if ([@"setDataSource" isEqualToString:call.method]) {
+            if (!player.isPipMode) {
+                [player resetPipController];
+            }
+            [[NSNotificationCenter defaultCenter] removeObserver:self];
             [player clear];
             // This call will clear cached frame because we will return transparent frame
-
+            
             NSDictionary* dataSource = argsMap[@"dataSource"];
             [_dataSourceDict setObject:dataSource forKey:[self getTextureId:player]];
             NSString* assetArg = dataSource[@"asset"];
@@ -311,6 +403,7 @@ bool _remoteCommandsInitialized = false;
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
             
+            [self disposeNotificationData:player];
             int overriddenDuration = 0;
             if ([dataSource objectForKey:@"overriddenDuration"] != [NSNull null]){
                 overriddenDuration = [dataSource[@"overriddenDuration"] intValue];
@@ -343,10 +436,14 @@ bool _remoteCommandsInitialized = false;
             } else {
                 result(FlutterMethodNotImplemented);
             }
+            [self addObservers:player];
             result(nil);
         } else if ([@"dispose" isEqualToString:call.method]) {
+            [[NSNotificationCenter defaultCenter] removeObserver:self];
             [player clear];
             [self disposeNotificationData:player];
+            // Remove all target handler before deactive Command center
+            [self removeCommandCenterTargetHandlers];
             [self setRemoteCommandsNotificationNotActive];
             [_players removeObjectForKey:@(textureId)];
             // If the Flutter contains https://github.com/flutter/engine/pull/12695,
@@ -398,18 +495,15 @@ bool _remoteCommandsInitialized = false;
 
             [player setTrackParameters:width: height : bitrate];
             result(nil);
+        } else if ([@"setupAutomaticPictureInPictureTransition" isEqualToString:call.method]){
+            [player willStartPictureInPicture:[argsMap[@"willStartPIP"] boolValue]];
+            result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
             double left = [argsMap[@"left"] doubleValue];
             double top = [argsMap[@"top"] doubleValue];
             double width = [argsMap[@"width"] doubleValue];
             double height = [argsMap[@"height"] doubleValue];
             [player enablePictureInPicture:CGRectMake(left, top, width, height)];
-            // move to background after 1 second to make sure PIP is started
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                UIApplication *app = [UIApplication sharedApplication];
-                [app performSelector:@selector(suspend)];
-            });
-            result(nil);
         } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]){
             if (@available(iOS 9.0, *)){
                 if ([AVPictureInPictureController isPictureInPictureSupported]){

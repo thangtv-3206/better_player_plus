@@ -8,12 +8,13 @@ class PictureInPicturePage extends StatefulWidget {
   _PictureInPicturePageState createState() => _PictureInPicturePageState();
 }
 
-class _PictureInPicturePageState extends State<PictureInPicturePage> {
+class _PictureInPicturePageState extends State<PictureInPicturePage> with WidgetsBindingObserver {
   late BetterPlayerController _betterPlayerController;
   GlobalKey _betterPlayerKey = GlobalKey();
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     BetterPlayerConfiguration betterPlayerConfiguration =
         BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
@@ -33,9 +34,25 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
     _betterPlayerController.setBetterPlayerGlobalKey(_betterPlayerKey);
     super.initState();
   }
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if ((_betterPlayerController.isPipMode() ?? false)) {
+        _betterPlayerController.disablePictureInPicture();
+      }
+    }
+    super.didChangeAppLifecycleState(state);
+  }
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(
         title: Text("Picture in Picture player"),
