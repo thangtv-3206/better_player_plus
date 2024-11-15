@@ -29,7 +29,6 @@ int _seekPosition;
     _disposed = false;
     _isPipMode = false;
     _seekPosition = -1;
-    _exitingPictureInPicture = false;
     _player = [[AVPlayer alloc] init];
     _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
     ///Fix for loading large videos
@@ -519,11 +518,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)play {
-    if (@available(iOS 10.0, *)) {
-        if (_exitingPictureInPicture){
-            return;
-        }
-    }
     _stalledCount = 0;
     _isStalledCheckStarted = false;
     _isPlaying = true;
@@ -531,11 +525,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)pause {
-    if (@available(iOS 10.0, *)) {
-        if (_exitingPictureInPicture){
-            return;
-        }
-    }
     _isPlaying = false;
     [self updatePlayingState];
 }
@@ -770,7 +759,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)pictureInPictureControllerWillStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
     [self setIsPipMode:false];
-    _exitingPictureInPicture = true;
 }
 
 - (void)pictureInPictureControllerWillStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
