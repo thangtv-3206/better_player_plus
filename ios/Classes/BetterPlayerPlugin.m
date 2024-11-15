@@ -115,9 +115,6 @@ bool _isCommandCenterButtonsEnabled = true;
         [currentNowPlayingInfoDict setObject:@0 forKey:MPMediaItemPropertyPlaybackDuration];
         [currentNowPlayingInfoDict setObject:@0 forKey:MPNowPlayingInfoPropertyIsLiveStream];
         [MPNowPlayingInfoCenter defaultCenter].nowPlayingInfo = currentNowPlayingInfoDict;
-
-        // hide PiP buttons
-        // [_notificationPlayer setIsDisplayPipButtons:false];
     });
 }
 
@@ -306,17 +303,6 @@ bool _isCommandCenterButtonsEnabled = true;
     }
 }
 
-//- (BOOL) isLiveStream:(BetterPlayer*) player {
-//    NSDictionary* dataSource = [_dataSourceDict objectForKey:[self getTextureId:player]];
-//
-//    BOOL isLiveStream = false;
-//    id isLiveStreamObject = [dataSource objectForKey:@"isLiveStream"];
-//    if (isLiveStreamObject != [NSNull null]) {
-//        isLiveStream = [[dataSource objectForKey:@"isLiveStream"] boolValue];
-//    }
-//    return isLiveStream;
-//}
-
 - (NSString*) getTextureId: (BetterPlayer*) player{
     NSArray* temp = [_players allKeysForObject: player];
     NSString* key = [temp lastObject];
@@ -504,6 +490,11 @@ bool _isCommandCenterButtonsEnabled = true;
             double width = [argsMap[@"width"] doubleValue];
             double height = [argsMap[@"height"] doubleValue];
             [player enablePictureInPicture:CGRectMake(left, top, width, height)];
+            // move to background after 1 second to make sure PIP is started
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                UIApplication *app = [UIApplication sharedApplication];
+                [app performSelector:@selector(suspend)];
+            });
         } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]){
             if (@available(iOS 9.0, *)){
                 if ([AVPictureInPictureController isPictureInPictureSupported]){
