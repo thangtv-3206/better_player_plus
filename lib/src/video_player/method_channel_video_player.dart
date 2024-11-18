@@ -274,6 +274,20 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> setAutomaticPipMode({
+    int? textureId,
+    bool? autoPip,
+  }) async {
+    return _channel.invokeMethod<void>(
+      'setAutomaticPipMode',
+      <String, dynamic>{
+        'textureId': textureId,
+        'autoPip': autoPip,
+      },
+    );
+  }
+
+  @override
   Future<void> setAudioTrack(int? textureId, String? name, int? index) {
     return _channel.invokeMethod<void>(
       'setAudioTrack',
@@ -423,6 +437,20 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.pipStop,
             key: key,
+          );
+        
+        case 'enteringPip':
+          return VideoEvent(
+            eventType: VideoEventType.enteringPip,
+            key: key,
+          );
+
+        case 'exitingPip':
+          return VideoEvent(
+            eventType: VideoEventType.exitingPip,
+            key: key,
+            wasPlaying: map['wasPlaying'] as bool?,
+            position: Duration(milliseconds: map['position'] as int),
           );
 
         default:

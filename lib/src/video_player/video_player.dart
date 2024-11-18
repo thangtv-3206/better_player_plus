@@ -236,7 +236,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             value = value.copyWith(isBuffering: false);
           }
           break;
-
         case VideoEventType.play:
           play();
           break;
@@ -253,6 +252,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           value = value.copyWith(isPip: false);
           break;
         case VideoEventType.unknown:
+        case VideoEventType.enteringPip:
+        case VideoEventType.exitingPip:
           break;
       }
     }
@@ -622,6 +623,13 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
   Future<void> openPipPermissionSettings() async {
     await _videoPlayerPlatform.openPipPermissionSettings(_textureId);
+  }
+
+  Future<void> setAutomaticPipMode({required bool autoPip}) async {
+    await _videoPlayerPlatform.setAutomaticPipMode(
+      textureId: textureId,
+      autoPip: autoPip,
+    );
   }
 
   void refresh() {

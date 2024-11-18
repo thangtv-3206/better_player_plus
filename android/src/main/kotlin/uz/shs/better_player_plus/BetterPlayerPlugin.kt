@@ -9,6 +9,7 @@ import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -17,11 +18,16 @@ import android.provider.Settings
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
+import androidx.annotation.RequiresApi
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.media3.common.util.UnstableApi
 import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -35,6 +41,7 @@ import java.util.HashMap
 /**
  * Android platform implementation of the VideoPlayerPlugin.
  */
+@UnstableApi
 class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private val videoPlayers = LongSparseArray<BetterPlayer>()
     private val dataSources = LongSparseArray<Map<String, Any?>>()
@@ -44,6 +51,8 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private var activity: Activity? = null
     private var pipHandler: Handler? = null
     private var pipRunnable: Runnable? = null
+    private var autoPip = false
+
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         val loader = FlutterLoader()
         flutterState = FlutterState(
@@ -80,13 +89,42 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        setLifecycleObserverForPip(binding)
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
 
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {}
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        setLifecycleObserverForPip(binding)
+    }
 
     override fun onDetachedFromActivity() {}
+
+    private fun setLifecycleObserverForPip(binding: ActivityPluginBinding) {
+        FlutterLifecycleAdapter.getActivityLifecycle(binding).addObserver(LifecycleEventObserver { _, event ->
+            if (event != Lifecycle.Event.ON_PAUSE) return@LifecycleEventObserver
+            if (Build.VERSION_CODES.Q <= Build.VERSION.SDK_INT && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                if (autoPip && activity?.isInPictureInPictureMode != true) {
+                    activity?.enterPictureInPictureMode(createPictureInPictureParams())
+                }
+            }
+        })
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createPictureInPictureParams(
+        autoPip: Boolean? = null
+    ): PictureInPictureParams {
+        val pipParamsBuilder = PictureInPictureParams.Builder()
+            .setAspectRatio(PIP_ASPECT_RATIO)
+            .setSourceRectHint(Rect())
+        if (autoPip != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // `setAutoEnterEnabled` only available from Build.VERSION_CODES.S(Android12)
+            pipParamsBuilder.setAutoEnterEnabled(autoPip)
+        }
+        return pipParamsBuilder.build()
+    }
+
 
     private fun disposeAllPlayers() {
         for (i in 0 until videoPlayers.size()) {
@@ -234,6 +272,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 openPipPermissionSettings()
             )
 
+            SET_AUTOMATIC_PICTURE_IN_PICTURE_MODE_METHOD -> {
+                val autoStart = call.argument<Boolean?>(AUTO_PIP_PARAMETER) ?: true
+                setAutomaticPictureInPictureMode(autoStart)
+                result.success(null)
+            }
+
             SET_AUDIO_TRACK_METHOD -> {
                 val name = call.argument<String?>(NAME_PARAMETER)
                 val index = call.argument<Int?>(INDEX_PARAMETER)
@@ -284,18 +328,20 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 flutterState!!.keyForAsset[asset]
             }
             player.setDataSource(
-                flutterState?.applicationContext!!,
-                key,
-                "asset:///$assetLookupKey",
-                null,
-                result,
-                headers,
-                false,
-                0L,
-                0L,
-                overriddenDuration.toLong(),
-                null,
-                null, null, null
+                context = flutterState?.applicationContext!!,
+                key = key,
+                dataSource = "asset:///$assetLookupKey",
+                formatHint = null,
+                result = result,
+                headers = headers,
+                useCache = false,
+                maxCacheSize = 0L,
+                maxCacheFileSize = 0L,
+                overriddenDuration = overriddenDuration.toLong(),
+                licenseUrl = null,
+                drmHeaders = null,
+                cacheKey = null,
+                clearKey = null
             )
         } else {
             val useCache = getParameter(dataSource, USE_CACHE_PARAMETER, false)
@@ -312,20 +358,20 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             val drmHeaders: Map<String, String> =
                 getParameter(dataSource, DRM_HEADERS_PARAMETER, HashMap())
             player.setDataSource(
-                flutterState!!.applicationContext,
-                key,
-                uri,
-                formatHint,
-                result,
-                headers,
-                useCache,
-                maxCacheSize,
-                maxCacheFileSize,
-                overriddenDuration.toLong(),
-                licenseUrl,
-                drmHeaders,
-                cacheKey,
-                clearKey
+                context = flutterState!!.applicationContext,
+                key = key,
+                dataSource = uri,
+                formatHint = formatHint,
+                result = result,
+                headers = headers,
+                useCache = useCache,
+                maxCacheSize = maxCacheSize,
+                maxCacheFileSize = maxCacheFileSize,
+                overriddenDuration = overriddenDuration.toLong(),
+                licenseUrl = licenseUrl,
+                drmHeaders = drmHeaders,
+                cacheKey = cacheKey,
+                clearKey = clearKey
             )
         }
     }
@@ -353,14 +399,14 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             val headers: Map<String, String> =
                 getParameter(dataSource, HEADERS_PARAMETER, HashMap())
             BetterPlayer.preCache(
-                flutterState?.applicationContext,
-                uri,
-                preCacheSize,
-                maxCacheSize,
-                maxCacheFileSize,
-                headers,
-                cacheKey,
-                result
+                context = flutterState?.applicationContext,
+                dataSource = uri,
+                preCacheSize = preCacheSize,
+                maxCacheSize = maxCacheSize,
+                maxCacheFileSize = maxCacheFileSize,
+                headers = headers,
+                cacheKey = cacheKey,
+                result = result
             )
         }
     }
@@ -411,8 +457,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                     val activityName =
                         getParameter(dataSource, ACTIVITY_NAME_PARAMETER, "MainActivity")
                     betterPlayer.setupPlayerNotification(
-                        flutterState?.applicationContext!!,
-                        title, author, imageUrl, notificationChannelName, activityName
+                        context = flutterState?.applicationContext!!,
+                        title = title,
+                        author = author,
+                        imageUrl = imageUrl,
+                        notificationChannelName = notificationChannelName,
+                        activityName = activityName
                     )
                 }
             }
@@ -447,9 +497,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private fun enablePictureInPicture(player: BetterPlayer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             player.setupMediaSession(flutterState!!.applicationContext)
-            activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(
-                Rational(16, 9)
-            ).build())
+            activity!!.enterPictureInPictureMode(
+                PictureInPictureParams.Builder().setAspectRatio(PIP_ASPECT_RATIO).build()
+            )
             startPictureInPictureListenerTimer(player)
             player.onPictureInPictureStatusChanged(true)
         }
@@ -494,6 +544,13 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         }
     }
 
+    private fun setAutomaticPictureInPictureMode(autoPip: Boolean) {
+        this.autoPip = autoPip
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            activity?.setPictureInPictureParams(createPictureInPictureParams(autoPip))
+        }
+    }
+
     private fun hasPipPermission(context: Context): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? AppOpsManager
         return when {
@@ -523,6 +580,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         player.dispose()
         videoPlayers.remove(textureId)
         dataSources.remove(textureId)
+        setAutomaticPictureInPictureMode(false)
         stopPipHandler()
     }
 
@@ -593,6 +651,8 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val DRM_HEADERS_PARAMETER = "drmHeaders"
         private const val DRM_CLEARKEY_PARAMETER = "clearKey"
         private const val MIX_WITH_OTHERS_PARAMETER = "mixWithOthers"
+        private const val AUTO_PIP_PARAMETER = "autoPip"
+        private val PIP_ASPECT_RATIO = Rational(16, 9)
         const val URL_PARAMETER = "url"
         const val PRE_CACHE_SIZE_PARAMETER = "preCacheSize"
         const val MAX_CACHE_SIZE_PARAMETER = "maxCacheSize"
@@ -628,5 +688,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val STOP_PRE_CACHE_METHOD = "stopPreCache"
         private const val HAS_PICTURE_IN_PICTURE_PERMISSION_METHOD = "hasPictureInPicturePermission"
         private const val OPEN_PICTURE_IN_PICTURE_PERMISSION_SETTINGS_METHOD = "openPictureInPicturePermissionSettings"
+        private const val SET_AUTOMATIC_PICTURE_IN_PICTURE_MODE_METHOD = "setAutomaticPipMode"
     }
 }

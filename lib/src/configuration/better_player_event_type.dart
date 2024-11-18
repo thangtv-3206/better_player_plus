@@ -25,4 +25,6 @@ enum BetterPlayerEventType {
   bufferingUpdate,
   bufferingEnd,
   changedPlaylistItem,
+  enteringPip, // Fire when start PIP by tap button in UI and close app.
+  exitingPip, // Fire when start PIP by tap button in UI and open app from PIP.
 }

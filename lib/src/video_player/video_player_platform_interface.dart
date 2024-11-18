@@ -164,6 +164,14 @@ abstract class VideoPlayerPlatform {
         'openPipPermissionSettings() has not been implemented.');
   }
 
+  ///Set up auto PiP transition.
+  Future<void> setAutomaticPipMode({
+    int? textureId,
+    bool? autoPip,
+  }) {
+    throw UnimplementedError('setAutomaticPipMode() has not been implemented.');
+  }
+
   Future<void> setAudioTrack(int? textureId, String? name, int? index) {
     throw UnimplementedError('setAudio() has not been implemented.');
   }
@@ -388,6 +396,7 @@ class VideoEvent {
     this.size,
     this.buffered,
     this.position,
+    this.wasPlaying,
   });
 
   /// The type of the event.
@@ -415,6 +424,9 @@ class VideoEvent {
 
   ///Seek position
   final Duration? position;
+
+  /// Only used if [eventType] is [VideoEventType.exitingPIP].
+  final bool? wasPlaying;
 
   @override
   bool operator ==(Object other) {
@@ -470,6 +482,12 @@ enum VideoEventType {
 
   /// Picture in picture mode has been dismissed
   pipStop,
+
+  /// will start Picture in picture
+  enteringPip,
+
+  /// will stop Picture in picture
+  exitingPip,
 
   /// An unknown event has been received.
   unknown,
