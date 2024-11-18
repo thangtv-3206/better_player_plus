@@ -258,6 +258,22 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<bool?> hasPipPermission(int? textureId) {
+    return _channel.invokeMethod<bool>(
+      'hasPictureInPicturePermission',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
+
+  @override
+  Future<void> openPipPermissionSettings(int? textureId) {
+    return _channel.invokeMethod<bool>(
+      'openPictureInPicturePermissionSettings',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
+
+  @override
   Future<void> setAudioTrack(int? textureId, String? name, int? index) {
     return _channel.invokeMethod<void>(
       'setAudioTrack',

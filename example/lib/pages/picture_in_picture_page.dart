@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:better_player_example/constants.dart';
 import 'package:flutter/material.dart';
@@ -59,8 +61,16 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
           ),
           ElevatedButton(
             child: Text("Show PiP"),
-            onPressed: () {
-              _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
+            onPressed: () async {
+              final hasPipPermission = Platform.isIOS ||
+                  (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
+              if (hasPipPermission) {
+                _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
+              } else {
+                if (Platform.isAndroid) {
+                  _betterPlayerController.openPipPermissionSettings();
+                }
+              }
             },
           ),
           ElevatedButton(

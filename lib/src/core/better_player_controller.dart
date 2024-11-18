@@ -1139,6 +1139,23 @@ class BetterPlayerController {
 
     return isPipSupported && !_isFullScreen;
   }
+  
+  ///Android only: check if picture in picture mode is enabled for this app.
+  Future<bool> hasPipPermission() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+
+    return (await videoPlayerController?.hasPipPermission()) ?? false;
+  }
+
+  ///Android only: Open PIP permission settings
+  Future<void> openPipPermissionSettings() async {
+    if (videoPlayerController == null) {
+      throw StateError("The data source has not been initialized");
+    }
+    await videoPlayerController!.openPipPermissionSettings();
+  }
 
   ///Handle VideoEvent when remote controls notification / PiP is shown
   void _handleVideoEvent(VideoEvent event) async {
