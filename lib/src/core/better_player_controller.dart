@@ -1019,7 +1019,7 @@ class BetterPlayerController {
   ///player starts playing again. if lifecycle is in [AppLifecycleState.paused]
   ///state, then video playback will stop. If showNotification is set in data
   ///source or handleLifecycle is false then this logic will be ignored.
-  void setAppLifecycleState(AppLifecycleState appLifecycleState) {
+  void setAppLifecycleState(AppLifecycleState appLifecycleState) async {
     if (_isAutomaticPlayPauseHandled()) {
       _appLifecycleState = appLifecycleState;
       if (appLifecycleState == AppLifecycleState.resumed) {
@@ -1029,7 +1029,7 @@ class BetterPlayerController {
       }
       if (appLifecycleState == AppLifecycleState.paused) {
         _wasPlayingBeforePause ??= isPlaying();
-        if (isPipMode() != true) {
+        if (isPipMode() != true || !(await hasPipPermission())) {
           pause();
         }
       }
