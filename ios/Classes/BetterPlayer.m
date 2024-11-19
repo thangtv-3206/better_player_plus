@@ -631,16 +631,18 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 {
     if( _player )
     {
-        // Create new controller passing reference to the AVPlayerLayer
-        self._playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
-        UIViewController* vc = [[[UIApplication sharedApplication] keyWindow] rootViewController];
+        if (!self._playerLayer) {
+            // Create new controller passing reference to the AVPlayerLayer
+            self._playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
+            UIViewController *vc = [[[UIApplication sharedApplication] keyWindow] rootViewController];
+            [vc.view.layer addSublayer:self._playerLayer];
+            vc.view.layer.needsDisplayOnBoundsChange = YES;
+        }
         self._playerLayer.frame = frame;
-        self._playerLayer.needsDisplayOnBoundsChange = YES;
-        //  [self._playerLayer addObserver:self forKeyPath:readyForDisplayKeyPath options:NSKeyValueObservingOptionNew context:nil];
-        // invisible ios PIP placeholder
+        self._playerLayer.hidden = NO;
         self._playerLayer.opacity = .0001;
-        [vc.view.layer addSublayer:self._playerLayer];
-        vc.view.layer.needsDisplayOnBoundsChange = YES;
+        self._playerLayer.needsDisplayOnBoundsChange = YES;
+
         if (@available(iOS 9.0, *)) {
             _pipController = NULL;
         }
@@ -654,10 +656,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)disablePictureInPicture
 {
-    [self setPictureInPicture:true];
     if (__playerLayer){
-        [self._playerLayer removeFromSuperlayer];
-        self._playerLayer = nil;
+        self._playerLayer.hidden = YES;
         if (_eventSink != nil) {
             _eventSink(@{@"event" : @"pipStop"});
         }
