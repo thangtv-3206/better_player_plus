@@ -21,7 +21,6 @@ class BetterPlayerController {
   static const String _speedParameter = "speed";
   static const String _dataSourceParameter = "dataSource";
   static const String _authorizationHeader = "Authorization";
-  static const String _wasPlayingParameter = "wasPlaying";
 
   ///General configuration used in controller instance.
   final BetterPlayerConfiguration betterPlayerConfiguration;
@@ -1030,7 +1029,7 @@ class BetterPlayerController {
       }
       if (appLifecycleState == AppLifecycleState.paused) {
         _wasPlayingBeforePause ??= isPlaying();
-        if (isPipMode() != true || !(await hasPipPermission())) {
+        if (isPipMode() != true || (Platform.isAndroid && !(await hasPipPermission()))) {
           pause();
         }
       }
@@ -1140,7 +1139,7 @@ class BetterPlayerController {
 
     return isPipSupported && !_isFullScreen;
   }
-  
+
   ///Android only: check if picture in picture mode is enabled for this app.
   Future<bool> hasPipPermission() async {
     if (videoPlayerController == null) {
@@ -1217,13 +1216,7 @@ class BetterPlayerController {
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.enteringPip));
         break;
       case VideoEventType.exitingPip:
-        _postEvent(BetterPlayerEvent(
-          BetterPlayerEventType.exitingPip,
-          parameters: <String, dynamic>{
-            _wasPlayingParameter: event.wasPlaying,
-            _progressParameter: event.position,
-          },
-        ));
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.exitingPip));
         break;
       default:
 

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -29,6 +30,8 @@ import androidx.media3.ui.PlayerNotificationManager.BitmapCallback
 import androidx.work.OneTimeWorkRequest
 import android.util.Log
 import android.view.Surface
+import android.view.View
+import android.view.View.OnLayoutChangeListener
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Observer
 import androidx.media3.extractor.DefaultExtractorsFactory
@@ -68,6 +71,7 @@ import androidx.media3.exoplayer.source.ClippingMediaSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import androidx.media3.ui.PlayerView
 import java.io.File
 import java.lang.Exception
 import java.lang.IllegalStateException
@@ -102,6 +106,8 @@ internal class BetterPlayer(
     private val customDefaultLoadControl: CustomDefaultLoadControl =
         customDefaultLoadControl ?: CustomDefaultLoadControl()
     private var lastSendBufferedPosition = 0L
+    private var playerView: PlayerView? = null
+    private var visibleRect: Rect? = null
 
     init {
         val loadBuilder = DefaultLoadControl.Builder()
@@ -116,9 +122,22 @@ internal class BetterPlayer(
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
             .build()
+        playerView = PlayerView(context).apply {
+            player = exoPlayer
+            addOnLayoutChangeListener { v, left, top, right, bottom, oleft, otop, oright, obottom ->
+                visibleRect = Rect(left, top, right, bottom)
+            }
+        }
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
         setupVideoPlayer(eventChannel, textureEntry, result)
+    }
+
+    fun getGlobalVisibleRect(): Rect {
+        if (visibleRect != null) return visibleRect!!
+        val rect = Rect()
+        playerView?.getGlobalVisibleRect(rect)
+        return rect
     }
 
     fun setDataSource(

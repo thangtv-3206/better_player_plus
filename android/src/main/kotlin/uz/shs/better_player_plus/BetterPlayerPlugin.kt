@@ -22,21 +22,19 @@ import androidx.annotation.RequiresApi
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.media3.common.util.UnstableApi
-import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
-import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 import io.flutter.embedding.engine.loader.FlutterLoader
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
+import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.EventChannel
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
-import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry
-import java.lang.Exception
-import java.util.HashMap
+import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
 
 /**
  * Android platform implementation of the VideoPlayerPlugin.
@@ -101,28 +99,34 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     override fun onDetachedFromActivity() {}
 
     private fun setLifecycleObserverForPip(binding: ActivityPluginBinding) {
+        // PIP for android low than S, not have setAutoEnterEnabled
         FlutterLifecycleAdapter.getActivityLifecycle(binding).addObserver(LifecycleEventObserver { _, event ->
             if (event != Lifecycle.Event.ON_PAUSE) return@LifecycleEventObserver
             if (Build.VERSION_CODES.Q <= Build.VERSION.SDK_INT && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 if (autoPip && activity?.isInPictureInPictureMode != true) {
-                    activity?.enterPictureInPictureMode(createPictureInPictureParams())
+                    activity?.enterPictureInPictureMode(updatePictureInPictureParams())
                 }
             }
         })
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun createPictureInPictureParams(
-        autoPip: Boolean? = null
+    private fun updatePictureInPictureParams(
+        autoPip: Boolean? = null,
+        player: BetterPlayer? = null
     ): PictureInPictureParams {
+        val rect =  player?.getGlobalVisibleRect() ?: Rect()
         val pipParamsBuilder = PictureInPictureParams.Builder()
             .setAspectRatio(PIP_ASPECT_RATIO)
-            .setSourceRectHint(Rect())
+            .setSourceRectHint(rect)
         if (autoPip != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // `setAutoEnterEnabled` only available from Build.VERSION_CODES.S(Android12)
             pipParamsBuilder.setAutoEnterEnabled(autoPip)
+            pipParamsBuilder.setSeamlessResizeEnabled(false)
         }
-        return pipParamsBuilder.build()
+        val params = pipParamsBuilder.build()
+        activity?.setPictureInPictureParams(params)
+        return params
     }
 
 
@@ -274,7 +278,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
             SET_AUTOMATIC_PICTURE_IN_PICTURE_MODE_METHOD -> {
                 val autoStart = call.argument<Boolean?>(AUTO_PIP_PARAMETER) ?: true
-                setAutomaticPictureInPictureMode(autoStart)
+                setAutomaticPictureInPictureMode(autoStart, player)
                 result.success(null)
             }
 
@@ -497,9 +501,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private fun enablePictureInPicture(player: BetterPlayer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             player.setupMediaSession(flutterState!!.applicationContext)
-            activity!!.enterPictureInPictureMode(
-                PictureInPictureParams.Builder().setAspectRatio(PIP_ASPECT_RATIO).build()
-            )
+            activity!!.enterPictureInPictureMode(updatePictureInPictureParams(player=player))
             startPictureInPictureListenerTimer(player)
             player.onPictureInPictureStatusChanged(true)
         }
@@ -544,10 +546,10 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         }
     }
 
-    private fun setAutomaticPictureInPictureMode(autoPip: Boolean) {
+    private fun setAutomaticPictureInPictureMode(autoPip: Boolean, player: BetterPlayer) {
         this.autoPip = autoPip
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            activity?.setPictureInPictureParams(createPictureInPictureParams(autoPip))
+            activity?.setPictureInPictureParams(updatePictureInPictureParams(autoPip, player))
         }
     }
 
@@ -580,7 +582,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         player.dispose()
         videoPlayers.remove(textureId)
         dataSources.remove(textureId)
-        setAutomaticPictureInPictureMode(false)
+        setAutomaticPictureInPictureMode(false, player)
         stopPipHandler()
     }
 

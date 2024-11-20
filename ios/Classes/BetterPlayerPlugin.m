@@ -422,6 +422,9 @@ bool _remoteCommandsInitialized = false;
         } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
             [player disablePictureInPicture];
             [player setPictureInPicture:false];
+        } else if ([@"setAutomaticPipMode" isEqualToString:call.method]) {
+            [player willStartPictureInPicture:[argsMap[@"autoPip"] boolValue]];
+            result(nil);
         } else if ([@"setAudioTrack" isEqualToString:call.method]){
             NSString* name = argsMap[@"name"];
             int index = [argsMap[@"index"] intValue];

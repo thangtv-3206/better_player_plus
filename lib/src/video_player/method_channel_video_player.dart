@@ -449,8 +449,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.exitingPip,
             key: key,
-            wasPlaying: map['wasPlaying'] as bool?,
-            position: Duration(milliseconds: map['position'] as int),
           );
 
         default:

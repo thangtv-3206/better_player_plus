@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BetterPlayer : NSObject <FlutterPlatformView, FlutterStreamHandler, AVPictureInPictureControllerDelegate>
 @property(readonly, nonatomic) AVPlayer* player;
+@property(nonatomic) BetterPlayerView* _betterPlayerView;
 @property(readonly, nonatomic) BetterPlayerEzDrmAssetsLoaderDelegate* loaderDelegate;
 @property(nonatomic) FlutterEventChannel* eventChannel;
 @property(nonatomic) FlutterEventSink eventSink;
@@ -29,6 +30,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) int failedCount;
 @property(nonatomic) AVPlayerLayer* _playerLayer;
 @property(nonatomic) bool _pictureInPicture;
+@property(nonatomic) bool _willStartPictureInPicture;
 @property(nonatomic) bool _observersAdded;
 @property(nonatomic) int stalledCount;
 @property(nonatomic) bool isStalledCheckStarted;
@@ -54,6 +56,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void) enablePictureInPicture: (CGRect) frame;
 - (void)setPictureInPicture:(BOOL)pictureInPicture;
 - (void)disablePictureInPicture;
+- (void)willStartPictureInPicture:(bool)willStart;
 - (int64_t)absolutePosition;
 - (int64_t) FLTCMTimeToMillis:(CMTime) time;
 

@@ -10,7 +10,7 @@ class PictureInPicturePage extends StatefulWidget {
   _PictureInPicturePageState createState() => _PictureInPicturePageState();
 }
 
-class _PictureInPicturePageState extends State<PictureInPicturePage> {
+class _PictureInPicturePageState extends State<PictureInPicturePage> with WidgetsBindingObserver {
   late BetterPlayerController _betterPlayerController;
   GlobalKey _betterPlayerKey = GlobalKey();
   late bool _shouldStartPIP = false;
@@ -18,10 +18,12 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     BetterPlayerConfiguration betterPlayerConfiguration =
         BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
+      autoPlay: true,
       deviceOrientationsOnFullScreen: DeviceOrientation.values,
       deviceOrientationsAfterFullScreen: [
         DeviceOrientation.portraitDown,
@@ -41,9 +43,21 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _betterPlayerController.removeEventsListener(eventListener);
     super.dispose();
   }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && Platform.isIOS) {
+      if (_betterPlayerController.isPipMode() ?? false) {
+        _betterPlayerController.disablePictureInPicture();
+      }
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+  
 
   void eventListener(BetterPlayerEvent event) {
     if (event.betterPlayerEventType == BetterPlayerEventType.play) {
@@ -76,15 +90,15 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (Platform.isAndroid && _isPiPMode) {
-      return AspectRatio(
-        aspectRatio: 16 / 9,
-        child: BetterPlayer(
-          controller: _betterPlayerController,
-          key: _betterPlayerKey,
-        ),
-      );
-    }
+    // if (Platform.isAndroid && _isPiPMode) {
+    //   return AspectRatio(
+    //     aspectRatio: 16 / 9,
+    //     child: BetterPlayer(
+    //       controller: _betterPlayerController,
+    //       key: _betterPlayerKey,
+    //     ),
+    //   );
+    // }
     
     return Scaffold(
       appBar: AppBar(
