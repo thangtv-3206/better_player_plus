@@ -17,6 +17,7 @@ static void* presentationSizeContext = &presentationSizeContext;
 void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
 API_AVAILABLE(ios(9.0))
 AVPictureInPictureController *_pipController;
+bool isRestorePip = false;
 #endif
 
 @implementation BetterPlayer
@@ -726,6 +727,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 #if TARGET_OS_IOS
 - (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
     [self disablePictureInPicture];
+    if (_eventSink != nil && !isRestorePip) {
+        _eventSink(@{@"event" : @"closePip"});
+    }
+    isRestorePip = false;
 }
 
 - (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
@@ -735,9 +740,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)pictureInPictureControllerWillStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
-    if (_eventSink != nil) {
-        _eventSink(@{@"event" : @"exitingPip"});
-    }
 }
 
 - (void)pictureInPictureControllerWillStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
@@ -751,6 +753,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL))completionHandler {
+    isRestorePip = true;
+    if (_eventSink != nil) {
+        _eventSink(@{@"event" : @"restorePip"});
+    }
     [self setRestoreUserInterfaceForPIPStopCompletionHandler: true];
 }
 

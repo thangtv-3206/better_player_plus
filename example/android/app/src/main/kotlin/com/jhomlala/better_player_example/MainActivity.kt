@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
+import androidx.lifecycle.Lifecycle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -45,7 +46,20 @@ class MainActivity : FlutterActivity() {
         isInPictureInPictureMode: Boolean,
         newConfig: Configuration?
     ) {
-        eventSink?.success(isInPictureInPictureMode)
+        var status = Integer.MAX_VALUE
+        if (lifecycle.currentState == Lifecycle.State.CREATED) {
+            // close button clicked
+            status = -1
+        } else if (lifecycle.currentState == Lifecycle.State.STARTED) {
+            status = if (isInPictureInPictureMode) {
+                // minimize to pip
+                1
+            } else {
+                // maximize button clicked
+                0
+            }
+        }
+        eventSink?.success(status)
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
 

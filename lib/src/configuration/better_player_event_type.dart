@@ -26,6 +26,7 @@ enum BetterPlayerEventType {
   bufferingEnd,
   changedPlaylistItem,
   prepareToPip, // in android auto PIP, when user Press Home or open other activity
-  enteringPip, // Fire when start PIP by tap button in UI and close app.
-  exitingPip, // Fire when start PIP by tap button in UI and open app from PIP.
+  enteringPip, // start show PIP
+  closePip, // close PIP by press close X
+  restorePip, // restore UI from PIP
 }

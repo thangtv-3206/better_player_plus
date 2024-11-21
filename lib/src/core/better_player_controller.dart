@@ -1029,9 +1029,7 @@ class BetterPlayerController {
       }
       if (appLifecycleState == AppLifecycleState.paused) {
         _wasPlayingBeforePause ??= isPlaying();
-        if (isPipMode() != true || (Platform.isAndroid && !(await hasPipPermission()))) {
-          pause();
-        }
+        pause();
       }
     }
   }
@@ -1218,8 +1216,11 @@ class BetterPlayerController {
       case VideoEventType.enteringPip:
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.enteringPip));
         break;
-      case VideoEventType.exitingPip:
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.exitingPip));
+      case VideoEventType.closePip:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.closePip));
+        break;
+      case VideoEventType.restorePip:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.restorePip));
         break;
       default:
 

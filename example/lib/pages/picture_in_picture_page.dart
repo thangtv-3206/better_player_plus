@@ -24,6 +24,7 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
       autoPlay: true,
+      handleLifecycle: false,
       deviceOrientationsOnFullScreen: DeviceOrientation.values,
       deviceOrientationsAfterFullScreen: [
         DeviceOrientation.portraitDown,
@@ -57,7 +58,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
     }
     super.didChangeAppLifecycleState(state);
   }
-  
 
   void eventListener(BetterPlayerEvent event) {
     if (event.betterPlayerEventType == BetterPlayerEventType.play) {
@@ -80,7 +80,7 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
       setState(() {
         _isPiPMode = true;
       });
-    } else if (event.betterPlayerEventType == BetterPlayerEventType.exitingPip) {
+    } else if (event.betterPlayerEventType == BetterPlayerEventType.restorePip) {
       _betterPlayerController.setControlsEnabled(true);
       setState(() {
         _isPiPMode = false;
@@ -88,12 +88,14 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
     } else if (event.betterPlayerEventType == BetterPlayerEventType.prepareToPip) {
       // event only in Android
       _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
+    } else if (event.betterPlayerEventType == BetterPlayerEventType.closePip) {
+      _betterPlayerController.setControlsEnabled(true);
+      _betterPlayerController.pause();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       appBar: AppBar(
         title: Text("Picture in Picture player"),

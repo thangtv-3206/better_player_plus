@@ -111,9 +111,16 @@ class _BetterPlayerState extends State<BetterPlayer>
   /// Set listener for PIP status. Only for Android.
   void _setAndroidPipStatusSubscription() {
     _androidPipStatusSubscription =
-        _androidPipStatusEventChannel.receiveBroadcastStream().listen((isPipMode) async {
-      final betterPlayerEvent =
-          isPipMode ? BetterPlayerEventType.enteringPip : BetterPlayerEventType.exitingPip;
+        _androidPipStatusEventChannel.receiveBroadcastStream().listen((pipStatus) async {
+      BetterPlayerEventType betterPlayerEvent;
+      if (pipStatus == 1) {
+        betterPlayerEvent = BetterPlayerEventType.enteringPip;
+      } else if (pipStatus == 0) {
+        betterPlayerEvent = BetterPlayerEventType.restorePip;
+      } else {
+        // -1
+        betterPlayerEvent = BetterPlayerEventType.closePip;
+      }
       widget.controller.postEvent(BetterPlayerEvent(betterPlayerEvent));
     }, onError: (_) {
       // ignored
