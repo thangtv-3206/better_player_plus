@@ -85,20 +85,14 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
       setState(() {
         _isPiPMode = false;
       });
+    } else if (event.betterPlayerEventType == BetterPlayerEventType.prepareToPip) {
+      // event only in Android
+      _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // if (Platform.isAndroid && _isPiPMode) {
-    //   return AspectRatio(
-    //     aspectRatio: 16 / 9,
-    //     child: BetterPlayer(
-    //       controller: _betterPlayerController,
-    //       key: _betterPlayerKey,
-    //     ),
-    //   );
-    // }
     
     return Scaffold(
       appBar: AppBar(

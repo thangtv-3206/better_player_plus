@@ -479,6 +479,9 @@ enum VideoEventType {
   /// Picture in picture mode has been dismissed
   pipStop,
 
+  /// PIP mode auto should be shown
+  prepareToPip,
+
   /// will start Picture in picture
   enteringPip,
 
