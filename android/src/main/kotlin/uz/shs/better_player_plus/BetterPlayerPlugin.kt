@@ -35,6 +35,11 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry
 import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
+import androidx.media3.ui.PlayerView
+import android.view.View
+import android.view.ViewGroup
+import android.view.SurfaceView;
+
 
 /**
  * Android platform implementation of the VideoPlayerPlugin.
@@ -115,7 +120,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         autoPip: Boolean? = null,
         player: BetterPlayer? = null
     ): PictureInPictureParams {
-        val rect =  player?.getGlobalVisibleRect() ?: Rect()
+        val rect = player?.getGlobalVisibleRect() ?: Rect()
+        val view = findPlayerView(activity?.window?.decorView?.rootView)
+        if (view != null) {
+            view.getGlobalVisibleRect(rect)
+        }
         val pipParamsBuilder = PictureInPictureParams.Builder()
             .setAspectRatio(PIP_ASPECT_RATIO)
             .setSourceRectHint(rect)
@@ -127,6 +136,22 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         val params = pipParamsBuilder.build()
         activity?.setPictureInPictureParams(params)
         return params
+    }
+
+    fun findPlayerView(viewGroup: View?): SurfaceView? {
+        if (viewGroup != null && viewGroup is ViewGroup)
+            for (i in 0 until viewGroup.childCount) {
+                val child = viewGroup.getChildAt(i)
+                if (child is SurfaceView) {
+                    return child
+                } else if (child is ViewGroup) {
+                    val textureView = findPlayerView(child)
+                    if (textureView != null) {
+                        return textureView
+                    }
+                }
+            }
+        return null
     }
 
 
