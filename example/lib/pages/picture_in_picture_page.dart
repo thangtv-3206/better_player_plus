@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:better_player_plus/better_player_plus.dart';
 import 'package:better_player_example/constants.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -20,38 +20,36 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
         BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
-      deviceOrientationsOnFullScreen: DeviceOrientation.values,
+      autoPlay: true,
+      autoDispose: false,
+      allowedScreenSleep: false,
       deviceOrientationsAfterFullScreen: [
         DeviceOrientation.portraitDown,
         DeviceOrientation.portraitUp
       ],
     );
-    BetterPlayerDataSource dataSource = BetterPlayerDataSource(
-      BetterPlayerDataSourceType.network,
-      Constants.elephantDreamVideoUrl,
-    );
-    _betterPlayerController = BetterPlayerController(betterPlayerConfiguration);
-    _betterPlayerController.setupDataSource(dataSource);
+    _betterPlayerController = BetterPlayerController(betterPlayerConfiguration,
+        betterPlayerDataSource: BetterPlayerDataSource.network(
+          Constants.elephantDreamVideoUrl,
+          liveStream: true,
+        ));
     _betterPlayerController.setBetterPlayerGlobalKey(_betterPlayerKey);
+    _betterPlayerController.setVolume(0);
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Picture in Picture player"),
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AppBar(
+          title: Text("Picture in Picture player"),
+        ),
       ),
       body: Column(
         children: [
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              "Example which shows how to use PiP.",
-              style: TextStyle(fontSize: 16),
-            ),
-          ),
           AspectRatio(
             aspectRatio: 16 / 9,
             child: BetterPlayer(
@@ -63,9 +61,11 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
             child: Text("Show PiP"),
             onPressed: () async {
               final hasPipPermission = Platform.isIOS ||
-                  (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
+                  (Platform.isAndroid &&
+                      await _betterPlayerController.hasPipPermission());
               if (hasPipPermission) {
-                _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
+                _betterPlayerController
+                    .enablePictureInPicture(_betterPlayerKey);
               } else {
                 if (Platform.isAndroid) {
                   _betterPlayerController.openPipPermissionSettings();

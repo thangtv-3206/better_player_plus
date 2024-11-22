@@ -78,6 +78,9 @@ class _WelcomePageState extends State<WelcomePage> {
 
   List<Widget> buildExampleElementWidgets() {
     return [
+      _buildExampleElementWidget("Picture in Picture", () {
+        _navigateToPage(PictureInPicturePage());
+      }),
       _buildExampleElementWidget("Basic player", () {
         _navigateToPage(BasicPlayerPage());
       }),
@@ -146,9 +149,6 @@ class _WelcomePageState extends State<WelcomePage> {
       }),
       _buildExampleElementWidget("Overridden duration", () {
         _navigateToPage(OverriddenDurationPage());
-      }),
-      _buildExampleElementWidget("Picture in Picture", () {
-        _navigateToPage(PictureInPicturePage());
       }),
       _buildExampleElementWidget("Controls always visible", () {
         _navigateToPage(ControlsAlwaysVisiblePage());

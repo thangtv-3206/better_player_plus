@@ -9,6 +9,7 @@ import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -17,18 +18,18 @@ import android.provider.Settings
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
-import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
 import io.flutter.embedding.engine.loader.FlutterLoader
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.EventChannel
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry
+import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
 import java.lang.Exception
 import java.util.HashMap
 
@@ -213,7 +214,14 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             }
 
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
-                enablePictureInPicture(player)
+                val density = activity!!.resources.displayMetrics.density
+                enablePictureInPicture(
+                    player,
+                    call.argument<Double>(LEFT_PARAMETER)!! * density,
+                    call.argument<Double>(TOP_PARAMETER)!! * density,
+                    call.argument<Double>(WIDTH_PARAMETER)!! * density,
+                    call.argument<Double>(HEIGHT_PARAMETER)!! * density
+                )
                 result.success(null)
             }
 
@@ -444,12 +452,32 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             .hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     }
 
-    private fun enablePictureInPicture(player: BetterPlayer) {
+    private fun enablePictureInPicture(
+        player: BetterPlayer,
+        left: Double,
+        top: Double,
+        width: Double,
+        height: Double
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             player.setupMediaSession(flutterState!!.applicationContext)
-            activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder().setAspectRatio(
-                Rational(16, 9)
-            ).build())
+            activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
+                .setAspectRatio(Rational(16, 9))
+                .apply {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        setSeamlessResizeEnabled(true)
+                    }
+                }
+                .setSourceRectHint(
+                    Rect(
+                        left.toInt(),
+                        top.toInt(),
+                        (width + left).toInt(),
+                        (height + top).toInt()
+                    )
+                )
+                .build()
+            )
             startPictureInPictureListenerTimer(player)
             player.onPictureInPictureStatusChanged(true)
         }
@@ -578,6 +606,8 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val VOLUME_PARAMETER = "volume"
         private const val LOCATION_PARAMETER = "location"
         private const val SPEED_PARAMETER = "speed"
+        private const val LEFT_PARAMETER = "left"
+        private const val TOP_PARAMETER = "top"
         private const val WIDTH_PARAMETER = "width"
         private const val HEIGHT_PARAMETER = "height"
         private const val BITRATE_PARAMETER = "bitrate"
@@ -627,6 +657,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val PRE_CACHE_METHOD = "preCache"
         private const val STOP_PRE_CACHE_METHOD = "stopPreCache"
         private const val HAS_PICTURE_IN_PICTURE_PERMISSION_METHOD = "hasPictureInPicturePermission"
-        private const val OPEN_PICTURE_IN_PICTURE_PERMISSION_SETTINGS_METHOD = "openPictureInPicturePermissionSettings"
+        private const val OPEN_PICTURE_IN_PICTURE_PERMISSION_SETTINGS_METHOD =
+            "openPictureInPicturePermissionSettings"
     }
 }

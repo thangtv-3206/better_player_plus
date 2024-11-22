@@ -50,9 +50,6 @@ class BetterPlayerConfiguration {
   /// Defines aspect ratio which will be used in fullscreen
   final double? fullScreenAspectRatio;
 
-  /// Defines the set of allowed device orientations on entering fullscreen
-  final List<DeviceOrientation> deviceOrientationsOnFullScreen;
-
   /// Defines the system overlays visible after exiting fullscreen
   final List<SystemUiOverlay> systemOverlaysAfterFullScreen;
 
@@ -85,14 +82,6 @@ class BetterPlayerConfiguration {
   ///Defines translations used in player. If null, then default english translations
   ///will be used.
   final List<BetterPlayerTranslations>? translations;
-
-  ///Defines if player should auto detect full screen device orientation based
-  ///on aspect ratio of the video. If aspect ratio of the video is < 1 then
-  ///video will played in full screen in portrait mode. If aspect ratio is >= 1
-  ///then video will be played horizontally. If this parameter is true, then
-  ///[deviceOrientationsOnFullScreen] and [fullScreenAspectRatio] value will be
-  /// ignored.
-  final bool autoDetectFullscreenDeviceOrientation;
 
   ///Defines if player should auto detect full screen aspect ration of the video.
   ///If [deviceOrientationsOnFullScreen] is true this is done automaticaly also.
@@ -131,10 +120,6 @@ class BetterPlayerConfiguration {
     this.errorBuilder,
     this.allowedScreenSleep = true,
     this.fullScreenAspectRatio,
-    this.deviceOrientationsOnFullScreen = const [
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ],
     this.systemOverlaysAfterFullScreen = SystemUiOverlay.values,
     this.deviceOrientationsAfterFullScreen = const [
       DeviceOrientation.portraitUp,
@@ -150,7 +135,6 @@ class BetterPlayerConfiguration {
     this.rotation = 0,
     this.playerVisibilityChangedBehavior,
     this.translations,
-    this.autoDetectFullscreenDeviceOrientation = false,
     this.autoDetectFullscreenAspectRatio = false,
     this.handleLifecycle = true,
     this.autoDispose = true,
@@ -172,7 +156,6 @@ class BetterPlayerConfiguration {
     Widget Function(BuildContext context, String? errorMessage)? errorBuilder,
     bool? allowedScreenSleep,
     double? fullScreenAspectRatio,
-    List<DeviceOrientation>? deviceOrientationsOnFullScreen,
     List<SystemUiOverlay>? systemOverlaysAfterFullScreen,
     List<DeviceOrientation>? deviceOrientationsAfterFullScreen,
     BetterPlayerRoutePageBuilder? routePageBuilder,
@@ -183,7 +166,6 @@ class BetterPlayerConfiguration {
     double? rotation,
     Function(BetterPlayerController controller, double visibilityFraction)? playerVisibilityChangedBehavior,
     List<BetterPlayerTranslations>? translations,
-    bool? autoDetectFullscreenDeviceOrientation,
     bool? handleLifecycle,
     bool? autoDispose,
     bool? expandToFill,
@@ -204,8 +186,6 @@ class BetterPlayerConfiguration {
       allowedScreenSleep: allowedScreenSleep ?? this.allowedScreenSleep,
       fullScreenAspectRatio:
           fullScreenAspectRatio ?? this.fullScreenAspectRatio,
-      deviceOrientationsOnFullScreen:
-          deviceOrientationsOnFullScreen ?? this.deviceOrientationsOnFullScreen,
       systemOverlaysAfterFullScreen:
           systemOverlaysAfterFullScreen ?? this.systemOverlaysAfterFullScreen,
       deviceOrientationsAfterFullScreen: deviceOrientationsAfterFullScreen ??
@@ -221,9 +201,6 @@ class BetterPlayerConfiguration {
       playerVisibilityChangedBehavior: playerVisibilityChangedBehavior ??
           this.playerVisibilityChangedBehavior,
       translations: translations ?? this.translations,
-      autoDetectFullscreenDeviceOrientation:
-          autoDetectFullscreenDeviceOrientation ??
-              this.autoDetectFullscreenDeviceOrientation,
       handleLifecycle: handleLifecycle ?? this.handleLifecycle,
       autoDispose: autoDispose ?? this.autoDispose,
       expandToFill: expandToFill ?? this.expandToFill,

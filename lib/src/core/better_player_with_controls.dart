@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:better_player_plus/src/configuration/better_player_controller_event.dart';
 import 'package:better_player_plus/src/controls/better_player_cupertino_controls.dart';
@@ -74,10 +75,8 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
     double? aspectRatio;
     if (betterPlayerController.isFullScreen) {
-      if (betterPlayerController.betterPlayerConfiguration
-              .autoDetectFullscreenDeviceOrientation ||
-          betterPlayerController
-              .betterPlayerConfiguration.autoDetectFullscreenAspectRatio) {
+      if (betterPlayerController
+          .betterPlayerConfiguration.autoDetectFullscreenAspectRatio) {
         aspectRatio =
             betterPlayerController.videoPlayerController?.value.aspectRatio ??
                 1.0;
