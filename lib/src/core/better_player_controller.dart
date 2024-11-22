@@ -9,7 +9,11 @@ import 'package:better_player_plus/src/video_player/video_player.dart';
 import 'package:better_player_plus/src/video_player/video_player_platform_interface.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+
+final EventChannel _androidPipStatusEventChannel =
+    const EventChannel('better_player_plus/pip_status_event_channel');
 
 ///Class used to control overall Better Player behavior. Main class to change
 ///state of Better Player.
@@ -200,6 +204,9 @@ class BetterPlayerController {
   ///normal events, use eventListener.
   Stream<BetterPlayerControllerEvent> get controllerEventStream =>
       _controllerEventStreamController.stream;
+
+  Stream<dynamic> get androidPipStatusStream =>
+      _androidPipStatusEventChannel.receiveBroadcastStream();
 
   ///Flag which determines whether are ASMS segments loading
   bool _asmsSegmentsLoading = false;

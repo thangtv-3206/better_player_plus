@@ -9,9 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
-final EventChannel _androidPipStatusEventChannel =
-    const EventChannel('better_player_plus/pip_status_event_channel');
-
 ///Widget which uses provided controller to render video player.
 class BetterPlayer extends StatefulWidget {
   const BetterPlayer({Key? key, required this.controller}) : super(key: key);
@@ -65,7 +62,6 @@ class _BetterPlayerState extends State<BetterPlayer>
   StreamSubscription? _controllerEventSubscription;
 
   /// For android PIP status handling.
-
   StreamSubscription? _androidPipStatusSubscription;
 
   @override
@@ -111,7 +107,7 @@ class _BetterPlayerState extends State<BetterPlayer>
   /// Set listener for PIP status. Only for Android.
   void _setAndroidPipStatusSubscription() {
     _androidPipStatusSubscription =
-        _androidPipStatusEventChannel.receiveBroadcastStream().listen((pipStatus) async {
+        widget.controller.androidPipStatusStream.listen((pipStatus) async {
       BetterPlayerEventType betterPlayerEvent;
       if (pipStatus == 1) {
         betterPlayerEvent = BetterPlayerEventType.enteringPip;
