@@ -205,8 +205,8 @@ class BetterPlayerController {
   Stream<BetterPlayerControllerEvent> get controllerEventStream =>
       _controllerEventStreamController.stream;
 
-  Stream<dynamic> get androidPipStatusStream =>
-      _androidPipStatusEventChannel.receiveBroadcastStream();
+  // Stream<dynamic> get androidPipStatusStream =>
+  //     _androidPipStatusEventChannel.receiveBroadcastStream();
 
   ///Flag which determines whether are ASMS segments loading
   bool _asmsSegmentsLoading = false;

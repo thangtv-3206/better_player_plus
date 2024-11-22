@@ -62,7 +62,7 @@ class _BetterPlayerState extends State<BetterPlayer>
   StreamSubscription? _controllerEventSubscription;
 
   /// For android PIP status handling.
-  StreamSubscription? _androidPipStatusSubscription;
+  // StreamSubscription? _androidPipStatusSubscription;
 
   @override
   void initState() {
@@ -87,9 +87,9 @@ class _BetterPlayerState extends State<BetterPlayer>
     _controllerEventSubscription =
         widget.controller.controllerEventStream.listen(onControllerEvent);
 
-    if (Platform.isAndroid) {
-      _setAndroidPipStatusSubscription();
-    }
+    // if (Platform.isAndroid) {
+    //   _setAndroidPipStatusSubscription();
+    // }
 
     //Default locale
     var locale = const Locale("en", "US");
@@ -105,10 +105,10 @@ class _BetterPlayerState extends State<BetterPlayer>
   }
 
   /// Set listener for PIP status. Only for Android.
-  void _setAndroidPipStatusSubscription() {
-    _androidPipStatusSubscription =
-        widget.controller.androidPipStatusStream.listen(onAndroidPipStatusEvent);
-  }
+  // void _setAndroidPipStatusSubscription() {
+  //   _androidPipStatusSubscription =
+  //       widget.controller.androidPipStatusStream.listen(onAndroidPipStatusEvent);
+  // }
 
   @override
   void dispose() {
@@ -126,7 +126,7 @@ class _BetterPlayerState extends State<BetterPlayer>
 
     WidgetsBinding.instance.removeObserver(this);
     _controllerEventSubscription?.cancel();
-    _androidPipStatusSubscription?.cancel();
+    // _androidPipStatusSubscription?.cancel();
     widget.controller.dispose();
     VisibilityDetectorController.instance
         .forget(Key("${widget.controller.hashCode}_key"));
@@ -139,10 +139,10 @@ class _BetterPlayerState extends State<BetterPlayer>
       _controllerEventSubscription?.cancel();
       _controllerEventSubscription =
           widget.controller.controllerEventStream.listen(onControllerEvent);
-      _androidPipStatusSubscription?.cancel();
-      if (Platform.isAndroid) {
-        _setAndroidPipStatusSubscription();
-      }
+      // _androidPipStatusSubscription?.cancel();
+      // if (Platform.isAndroid) {
+      //   _setAndroidPipStatusSubscription();
+      // }
     }
     super.didUpdateWidget(oldWidget);
   }
