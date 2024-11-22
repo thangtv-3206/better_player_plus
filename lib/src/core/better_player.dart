@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:better_player_plus/src/configuration/better_player_controller_event.dart';
 import 'package:better_player_plus/src/core/better_player_utils.dart';
@@ -8,9 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-
-final EventChannel _androidPipStatusEventChannel =
-    const EventChannel('better_player_plus/pip_status_event_channel');
 
 ///Widget which uses provided controller to render video player.
 class BetterPlayer extends StatefulWidget {
@@ -64,10 +60,6 @@ class _BetterPlayerState extends State<BetterPlayer>
   ///Subscription for controller events
   StreamSubscription? _controllerEventSubscription;
 
-  /// For android PIP status handling.
-
-  StreamSubscription? _androidPipStatusSubscription;
-
   @override
   void initState() {
     super.initState();
@@ -91,10 +83,6 @@ class _BetterPlayerState extends State<BetterPlayer>
     _controllerEventSubscription =
         widget.controller.controllerEventStream.listen(onControllerEvent);
 
-    if (Platform.isAndroid) {
-      _setAndroidPipStatusSubscription();
-    }
-
     //Default locale
     var locale = const Locale("en", "US");
     try {
@@ -106,25 +94,6 @@ class _BetterPlayerState extends State<BetterPlayer>
       BetterPlayerUtils.log(exception.toString());
     }
     widget.controller.setupTranslations(locale);
-  }
-
-  /// Set listener for PIP status. Only for Android.
-  void _setAndroidPipStatusSubscription() {
-    _androidPipStatusSubscription =
-        _androidPipStatusEventChannel.receiveBroadcastStream().listen((pipStatus) async {
-      BetterPlayerEventType betterPlayerEvent;
-      if (pipStatus == 1) {
-        betterPlayerEvent = BetterPlayerEventType.enteringPip;
-      } else if (pipStatus == 0) {
-        betterPlayerEvent = BetterPlayerEventType.restorePip;
-      } else {
-        // -1
-        betterPlayerEvent = BetterPlayerEventType.closePip;
-      }
-      widget.controller.postEvent(BetterPlayerEvent(betterPlayerEvent));
-    }, onError: (_) {
-      // ignored
-    });
   }
 
   @override
@@ -143,7 +112,6 @@ class _BetterPlayerState extends State<BetterPlayer>
 
     WidgetsBinding.instance.removeObserver(this);
     _controllerEventSubscription?.cancel();
-    _androidPipStatusSubscription?.cancel();
     widget.controller.dispose();
     VisibilityDetectorController.instance
         .forget(Key("${widget.controller.hashCode}_key"));
