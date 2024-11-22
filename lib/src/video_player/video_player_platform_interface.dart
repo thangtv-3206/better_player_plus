@@ -479,9 +479,6 @@ enum VideoEventType {
   /// Picture in picture mode has been dismissed
   pipStop,
 
-  /// in android auto PIP, when user Press Home or open other activity
-  prepareToPip, 
-
   /// start show PIP
   enteringPip, 
 

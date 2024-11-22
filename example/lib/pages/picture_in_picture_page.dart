@@ -60,10 +60,10 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
   }
 
   void eventListener(BetterPlayerEvent event) {
+    debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
     if (event.betterPlayerEventType == BetterPlayerEventType.play) {
       if (Platform.isAndroid || !_isPiPMode) {
         _betterPlayerController.setAutomaticPipMode(autoPip: true);
-
         setState(() {
           _shouldStartPIP = true;
         });
@@ -76,19 +76,21 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
         });
       }
     } else if (event.betterPlayerEventType == BetterPlayerEventType.enteringPip) {
+      if (!_betterPlayerController.isFullScreen) {
+        _betterPlayerController.enterFullScreen();
+      }
       _betterPlayerController.setControlsEnabled(false);
       setState(() {
         _isPiPMode = true;
       });
     } else if (event.betterPlayerEventType == BetterPlayerEventType.restorePip) {
+      _betterPlayerController.exitFullScreen();
       _betterPlayerController.setControlsEnabled(true);
       setState(() {
         _isPiPMode = false;
       });
-    } else if (event.betterPlayerEventType == BetterPlayerEventType.prepareToPip) {
-      // event only in Android
-      _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
     } else if (event.betterPlayerEventType == BetterPlayerEventType.closePip) {
+      _betterPlayerController.exitFullScreen();
       _betterPlayerController.setControlsEnabled(true);
       _betterPlayerController.pause();
     }

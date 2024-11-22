@@ -54,9 +54,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private val onUserLeaveHintListener = object : PluginRegistry.UserLeaveHintListener {
         override fun onUserLeaveHint() {
             val activity = activity ?: return
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 if (autoPip && !activity.isInPictureInPictureMode && hasPipPermission(activity)) {
-                    currentPlayer?.prepareToPip()
+                    currentPlayer?.let { enablePictureInPicture(it) }
                 }
             }
         }
@@ -99,7 +99,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activityPluginBinding = binding
         activity = binding.activity
-        binding.addOnUserLeaveHintListener(onUserLeaveHintListener)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            binding.addOnUserLeaveHintListener(onUserLeaveHintListener)
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
@@ -108,7 +110,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     }
 
     override fun onDetachedFromActivity() {
-        activityPluginBinding?.addOnUserLeaveHintListener(onUserLeaveHintListener)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            activityPluginBinding?.addOnUserLeaveHintListener(onUserLeaveHintListener)
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -122,7 +126,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             // `setAutoEnterEnabled` only available from Build.VERSION_CODES.S(Android12)
             // but we can not use it because Rect not work
             // we use onUserLeaveHint as replaced solution
-            pipParamsBuilder.setAutoEnterEnabled(false)
+            pipParamsBuilder.setAutoEnterEnabled(autoPip)
             pipParamsBuilder.setSeamlessResizeEnabled(false)
         }
         val params = pipParamsBuilder.build()
@@ -176,11 +180,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             CLEAR_CACHE_METHOD -> clearCache(result)
             else -> {
                 if (call.argument<Any>(TEXTURE_ID_PARAMETER) == null) {
-//                    result.error(
-//                        "Unknown textureId",
-//                        "No video player associated with texture id",
-//                        null
-//                    )
                     return
                 }
                 val textureId = ((call.argument<Any>(TEXTURE_ID_PARAMETER) as Int?) ?: 0).toLong()

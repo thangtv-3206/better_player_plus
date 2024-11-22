@@ -545,12 +545,6 @@ internal class BetterPlayer(
         exoPlayer?.playWhenReady = false
     }
 
-    fun prepareToPip() {
-        val event: MutableMap<String, Any> = HashMap()
-        event["event"] = "prepareToPip"
-        eventSink.success(event)
-    }
-
     fun setLooping(value: Boolean) {
         exoPlayer?.repeatMode = if (value) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
     }

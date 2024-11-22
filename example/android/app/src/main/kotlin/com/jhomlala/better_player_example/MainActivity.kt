@@ -50,7 +50,8 @@ class MainActivity : FlutterActivity() {
         if (lifecycle.currentState == Lifecycle.State.CREATED) {
             // close button clicked
             status = -1
-        } else if (lifecycle.currentState == Lifecycle.State.STARTED) {
+        } else if (lifecycle.currentState == Lifecycle.State.STARTED || lifecycle.currentState == Lifecycle.State.RESUMED) {
+            // resumed if android >= 12, started if android < 12
             status = if (isInPictureInPictureMode) {
                 // minimize to pip
                 1
