@@ -107,20 +107,7 @@ class _BetterPlayerState extends State<BetterPlayer>
   /// Set listener for PIP status. Only for Android.
   void _setAndroidPipStatusSubscription() {
     _androidPipStatusSubscription =
-        widget.controller.androidPipStatusStream.listen((pipStatus) async {
-      BetterPlayerEventType betterPlayerEvent;
-      if (pipStatus == 1) {
-        betterPlayerEvent = BetterPlayerEventType.enteringPip;
-      } else if (pipStatus == 0) {
-        betterPlayerEvent = BetterPlayerEventType.restorePip;
-      } else {
-        // -1
-        betterPlayerEvent = BetterPlayerEventType.closePip;
-      }
-      widget.controller.postEvent(BetterPlayerEvent(betterPlayerEvent));
-    }, onError: (_) {
-      // ignored
-    });
+        widget.controller.androidPipStatusStream.listen(onAndroidPipStatusEvent);
   }
 
   @override
@@ -152,6 +139,10 @@ class _BetterPlayerState extends State<BetterPlayer>
       _controllerEventSubscription?.cancel();
       _controllerEventSubscription =
           widget.controller.controllerEventStream.listen(onControllerEvent);
+      _androidPipStatusSubscription?.cancel();
+      if (Platform.isAndroid) {
+        _setAndroidPipStatusSubscription();
+      }
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -168,6 +159,20 @@ class _BetterPlayerState extends State<BetterPlayer>
         setState(() {});
         break;
     }
+  }
+
+  void onAndroidPipStatusEvent(dynamic pipStatus) {
+    if (pipStatus! is num) return;
+    BetterPlayerEventType betterPlayerEvent;
+    if (pipStatus == 1) {
+      betterPlayerEvent = BetterPlayerEventType.enteringPip;
+    } else if (pipStatus == 0) {
+      betterPlayerEvent = BetterPlayerEventType.restorePip;
+    } else {
+      // -1
+      betterPlayerEvent = BetterPlayerEventType.closePip;
+    }
+    widget.controller.postEvent(BetterPlayerEvent(betterPlayerEvent));
   }
 
   // ignore: avoid_void_async
