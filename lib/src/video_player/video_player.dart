@@ -629,8 +629,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     value = value.copyWith();
   }
 
-  void update(VideoPlayerValue newValue) {
-    value = newValue;
+  void updateIsPip(bool isPip) {
+    value = value.copyWith(isPip: isPip);
   }
 
   void setAudioTrack(String? name, int? index) {

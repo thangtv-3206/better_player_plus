@@ -164,7 +164,6 @@ class _BetterPlayerState extends State<BetterPlayer>
         break;
       case BetterPlayerControllerEvent.hideFullscreen:
         onFullScreenChanged();
-        _isFullScreenByRotate = false;
         break;
       default:
         setState(() {});
@@ -183,6 +182,7 @@ class _BetterPlayerState extends State<BetterPlayer>
     } else if (_isFullScreen) {
       Navigator.maybeOf(context, rootNavigator: true)?.pop();
       _isFullScreen = false;
+      _isFullScreenByRotate = false;
       controller
           .postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreen));
     }

@@ -1080,8 +1080,7 @@ class BetterPlayerController {
       final Offset position = renderBox.localToGlobal(Offset.zero);
 
       if (Platform.isAndroid) {
-        videoPlayerController
-            ?.update(videoPlayerController!.value.copyWith(isPip: true));
+        videoPlayerController?.updateIsPip(true);
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
         Navigator.of(playerContext, rootNavigator: true).push(
@@ -1113,8 +1112,7 @@ class BetterPlayerController {
         return;
       }
       if (Platform.isIOS) {
-        videoPlayerController
-            ?.update(videoPlayerController!.value.copyWith(isPip: true));
+        videoPlayerController?.updateIsPip(true);
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         await videoPlayerController?.enablePictureInPicture(
           left: position.dx,
