@@ -5,6 +5,9 @@ import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+const EventChannel _androidPipStatusEventChannel =
+    EventChannel('better_player_plus/pip_status_event_channel');
+
 class PictureInPicturePage extends StatefulWidget {
   @override
   _PictureInPicturePageState createState() => _PictureInPicturePageState();
@@ -37,9 +40,57 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
           liveStream: true,
         ));
     _betterPlayerController.setBetterPlayerGlobalKey(_betterPlayerKey);
-    _betterPlayerController.setVolume(0);
     _betterPlayerController.addEventsListener(eventListener);
+    if (Platform.isAndroid) {
+      // this event should be called from Android onPictureInPictureModeChanged
+      // with iOS we handle event from BetterPlayerEventType
+      // don't cancel this stream
+      _androidPipStatusEventChannel.receiveBroadcastStream().listen((pipStatus) {
+        if (pipStatus is! num || !context.mounted) return;
+        BetterPlayerEventType pipStatusEventType;
+        if (pipStatus == 1) {
+          pipStatusEventType = BetterPlayerEventType.enteringPip;
+        } else if (pipStatus == 0) {
+          pipStatusEventType = BetterPlayerEventType.restorePip;
+        } else {
+          // -1
+          pipStatusEventType = BetterPlayerEventType.closePip;
+        }
+        handlePipStatusEvent(pipStatusEventType);
+      });
+    }
     super.initState();
+  }
+
+Future<void> handlePipStatusEvent(BetterPlayerEventType eventType) async {
+    switch (eventType) {
+      case BetterPlayerEventType.enteringPip:
+        if (Platform.isAndroid) {
+          if (await _betterPlayerController.hasPipPermission()) {
+            if (!_betterPlayerController.isFullScreen) {
+              _betterPlayerController.enterFullScreen();
+            }
+            _betterPlayerController.setControlsEnabled(false);
+          } else {
+            _betterPlayerController.pause();
+          }
+        } else {
+          _betterPlayerController.setControlsEnabled(false);
+        }
+      case BetterPlayerEventType.restorePip:
+        if (Platform.isAndroid) {
+          _betterPlayerController.exitFullScreen();
+        }
+        _betterPlayerController.setControlsEnabled(true);
+      case BetterPlayerEventType.closePip:
+        if (Platform.isAndroid) {
+          _betterPlayerController.exitFullScreen();
+        }
+        _betterPlayerController.pause();
+        _betterPlayerController.setControlsEnabled(true);
+      // ignore: no_default_cases
+      default:
+    }
   }
 
   @override
@@ -61,38 +112,27 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
 
   void eventListener(BetterPlayerEvent event) {
     debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
-    if (event.betterPlayerEventType == BetterPlayerEventType.play) {
-      if (Platform.isAndroid || !_isPiPMode) {
-        _betterPlayerController.setAutomaticPipMode(autoPip: true);
-        setState(() {
-          _shouldStartPIP = true;
-        });
-      }
-    } else if (event.betterPlayerEventType == BetterPlayerEventType.pause) {
-      if (Platform.isAndroid || !_isPiPMode) {
-        _betterPlayerController.setAutomaticPipMode(autoPip: false);
-        setState(() {
-          _shouldStartPIP = false;
-        });
-      }
-    } else if (event.betterPlayerEventType == BetterPlayerEventType.enteringPip) {
-      if (!_betterPlayerController.isFullScreen) {
-        _betterPlayerController.enterFullScreen();
-      }
-      _betterPlayerController.setControlsEnabled(false);
-      setState(() {
-        _isPiPMode = true;
-      });
-    } else if (event.betterPlayerEventType == BetterPlayerEventType.restorePip) {
-      _betterPlayerController.exitFullScreen();
-      _betterPlayerController.setControlsEnabled(true);
-      setState(() {
-        _isPiPMode = false;
-      });
-    } else if (event.betterPlayerEventType == BetterPlayerEventType.closePip) {
-      _betterPlayerController.exitFullScreen();
-      _betterPlayerController.setControlsEnabled(true);
-      _betterPlayerController.pause();
+    switch (event.betterPlayerEventType) {
+      case BetterPlayerEventType.play:
+        if (Platform.isAndroid || !_isPiPMode) {
+          _betterPlayerController.setAutomaticPipMode(autoPip: true);
+          setState(() {
+            _shouldStartPIP = true;
+          });
+        }
+        break;
+      case BetterPlayerEventType.pause:
+        if (Platform.isAndroid || !_isPiPMode) {
+          _betterPlayerController.setAutomaticPipMode(autoPip: false);
+          setState(() {
+            _shouldStartPIP = false;
+          });
+        }
+      case BetterPlayerEventType.enteringPip:
+      case BetterPlayerEventType.restorePip:
+      case BetterPlayerEventType.closePip:
+        handlePipStatusEvent(event.betterPlayerEventType);
+      default:
     }
   }
 

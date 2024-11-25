@@ -52,6 +52,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private var pipRunnable: Runnable? = null
     private var autoPip = false
     private var currentPlayer: BetterPlayer? = null
+    private var lastSourceHintRectPip: Rect? = null;
 
     private val onUserLeaveHintListener = object : PluginRegistry.UserLeaveHintListener {
         override fun onUserLeaveHint() {
@@ -119,17 +120,22 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun updatePictureInPictureParams(
-        autoPip: Boolean? = null
+        autoPip: Boolean? = null,
+        sourceHintRect: Rect? = null,
     ): PictureInPictureParams {
         val pipParamsBuilder = PictureInPictureParams.Builder()
             .setAspectRatio(PIP_ASPECT_RATIO)
-            .setSourceRectHint(Rect())
+            .setSourceRectHint(sourceHintRect ?: lastSourceHintRectPip)
         if (autoPip != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             // `setAutoEnterEnabled` only available from Build.VERSION_CODES.S(Android12)
             // but we can not use it because Rect not work
             // we use onUserLeaveHint as replaced solution
             pipParamsBuilder.setAutoEnterEnabled(autoPip)
-            pipParamsBuilder.setSeamlessResizeEnabled(false)
+            pipParamsBuilder.setSeamlessResizeEnabled(true)
+        }
+
+        if (sourceHintRect != null) {
+            lastSourceHintRectPip = sourceHintRect
         }
         val params = pipParamsBuilder.build()
         activity?.setPictureInPictureParams(params)
@@ -259,13 +265,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
                 val density = activity!!.resources.displayMetrics.density
-                enablePictureInPicture(
-                    player,
-                    call.argument<Double>(LEFT_PARAMETER)!! * density,
-                    call.argument<Double>(TOP_PARAMETER)!! * density,
-                    call.argument<Double>(WIDTH_PARAMETER)!! * density,
-                    call.argument<Double>(HEIGHT_PARAMETER)!! * density
-                )
+                val left = (call.argument<Double>(LEFT_PARAMETER)!! * density).toInt()
+                val top = (call.argument<Double>(TOP_PARAMETER)!! * density).toInt()
+                val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
+                val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
+                lastSourceHintRectPip = Rect(left, top, left + width, top + height)
+                enablePictureInPicture(player, lastSourceHintRectPip)
                 result.success(null)
             }
 
@@ -510,30 +515,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     private fun enablePictureInPicture(
         player: BetterPlayer,
-        left: Double,
-        top: Double,
-        width: Double,
-        height: Double
+        sourceHintRect: Rect? = null
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             player.setupMediaSession(flutterState!!.applicationContext)
-            activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .apply {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        setSeamlessResizeEnabled(true)
-                    }
-                }
-                .setSourceRectHint(
-                    Rect(
-                        left.toInt(),
-                        top.toInt(),
-                        (width + left).toInt(),
-                        (height + top).toInt()
-                    )
-                )
-                .build()
-            )
+            activity!!.enterPictureInPictureMode(updatePictureInPictureParams(sourceHintRect = sourceHintRect))
             startPictureInPictureListenerTimer(player)
             player.onPictureInPictureStatusChanged(true)
         }

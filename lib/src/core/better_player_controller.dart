@@ -605,13 +605,13 @@ class BetterPlayerController {
   }
 
   ///Start video playback. Play will be triggered only if current lifecycle state
-  ///is resumed.
+  ///is resumed or Pip mode
   Future<void> play() async {
     if (videoPlayerController == null) {
       throw StateError("The data source has not been initialized");
     }
 
-    if (_appLifecycleState == AppLifecycleState.resumed) {
+    if (_appLifecycleState == AppLifecycleState.resumed || isPipMode() == true) {
       await videoPlayerController!.play();
       _hasCurrentDataSourceStarted = true;
       _wasPlayingBeforePause = null;
