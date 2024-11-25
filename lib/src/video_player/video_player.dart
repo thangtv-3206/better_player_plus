@@ -5,6 +5,7 @@
 // Dart imports:
 import 'dart:async';
 import 'dart:io';
+
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player_plus/src/video_player/video_player_platform_interface.dart';
 import 'package:flutter/material.dart';
@@ -641,6 +642,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
   void refresh() {
     value = value.copyWith();
+  }
+
+  void updateIsPip(bool isPip) {
+    value = value.copyWith(isPip: isPip);
   }
 
   void setAudioTrack(String? name, int? index) {

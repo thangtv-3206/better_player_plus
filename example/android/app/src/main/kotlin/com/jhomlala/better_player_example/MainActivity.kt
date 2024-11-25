@@ -17,7 +17,7 @@ class MainActivity : FlutterActivity() {
     private var eventSink: EventSink? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        startNotificationService()
+//        startNotificationService()
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -66,7 +66,7 @@ class MainActivity : FlutterActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        stopNotificationService()
+//        stopNotificationService()
     }
 
     ///TODO: Call this method via channel after remote notification start

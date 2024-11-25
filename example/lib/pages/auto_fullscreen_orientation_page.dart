@@ -1,5 +1,5 @@
-import 'package:better_player_plus/better_player_plus.dart';
 import 'package:better_player_example/constants.dart';
+import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 
 class AutoFullscreenOrientationPage extends StatefulWidget {
@@ -16,9 +16,7 @@ class _AutoFullscreenOrientationPageState
   void initState() {
     BetterPlayerConfiguration betterPlayerConfiguration =
         BetterPlayerConfiguration(
-            aspectRatio: 16 / 9,
-            fit: BoxFit.contain,
-            autoDetectFullscreenDeviceOrientation: true);
+            aspectRatio: 16 / 9, fit: BoxFit.contain);
     BetterPlayerDataSource dataSource = BetterPlayerDataSource(
         BetterPlayerDataSourceType.network, Constants.forBiggerBlazesUrl);
     _betterPlayerController = BetterPlayerController(betterPlayerConfiguration);

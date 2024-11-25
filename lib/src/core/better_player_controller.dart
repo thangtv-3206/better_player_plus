@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:better_player_plus/src/configuration/better_player_controller_event.dart';
 import 'package:better_player_plus/src/core/better_player_utils.dart';
@@ -9,6 +10,7 @@ import 'package:better_player_plus/src/video_player/video_player.dart';
 import 'package:better_player_plus/src/video_player/video_player_platform_interface.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 ///Class used to control overall Better Player behavior. Main class to change
@@ -151,12 +153,6 @@ class BetterPlayerController {
 
   ///Was Picture in Picture opened.
   bool _wasInPipMode = false;
-
-  ///Was player in fullscreen before Picture in Picture opened.
-  bool _wasInFullScreenBeforePiP = false;
-
-  ///Was controls enabled before Picture in Picture opened.
-  bool _wasControlsEnabledBeforePiP = false;
 
   ///GlobalKey of the BetterPlayer widget
   GlobalKey? _betterPlayerGlobalKey;
@@ -790,14 +786,12 @@ class BetterPlayerController {
     if (currentVideoPlayerValue.isPip) {
       _wasInPipMode = true;
     } else if (_wasInPipMode) {
+      Navigator.of(betterPlayerGlobalKey!.currentContext!, rootNavigator: true)
+          .popUntil((route) => route.settings.name != 'better_player_pip');
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
+          overlays: SystemUiOverlay.values);
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStop));
       _wasInPipMode = false;
-      if (!_wasInFullScreenBeforePiP) {
-        exitFullScreen();
-      }
-      if (_wasControlsEnabledBeforePiP) {
-        setControlsEnabled(true);
-      }
       videoPlayerController?.refresh();
     }
 
@@ -856,8 +850,7 @@ class BetterPlayerController {
       if (betterPlayerPlaylistConfiguration == null) {
         BetterPlayerUtils.log(
             "BetterPlayerPlaylistConfiguration has not been set!");
-        throw StateError(
-            "BetterPlayerPlaylistConfiguration has not been set!");
+        throw StateError("BetterPlayerPlaylistConfiguration has not been set!");
       }
 
       _nextVideoTime =
@@ -942,8 +935,8 @@ class BetterPlayerController {
 
     if (_isAutomaticPlayPauseHandled()) {
       if (betterPlayerConfiguration.playerVisibilityChangedBehavior != null) {
-        betterPlayerConfiguration
-            .playerVisibilityChangedBehavior!(this, visibilityFraction);
+        betterPlayerConfiguration.playerVisibilityChangedBehavior!(
+            this, visibilityFraction);
       } else {
         if (visibilityFraction == 0) {
           _wasPlayingBeforePause ??= isPlaying();
@@ -1029,7 +1022,10 @@ class BetterPlayerController {
       }
       if (appLifecycleState == AppLifecycleState.paused) {
         _wasPlayingBeforePause ??= isPlaying();
-        pause();
+        if (isPipMode() != true ||
+            (Platform.isAndroid && !(await hasPipPermission()))) {
+          pause();
+        }
       }
     }
   }
@@ -1072,34 +1068,58 @@ class BetterPlayerController {
         (await videoPlayerController!.isPictureInPictureSupported()) ?? false;
 
     if (isPipSupported) {
-      _wasInFullScreenBeforePiP = _isFullScreen;
-      _wasControlsEnabledBeforePiP = _controlsEnabled;
-      setControlsEnabled(false);
+      final playerContext = betterPlayerGlobalKey.currentContext!;
+      final RenderBox? renderBox =
+          playerContext.findRenderObject() as RenderBox?;
+      if (renderBox == null) {
+        BetterPlayerUtils.log(
+            "Can't show PiP. RenderBox is null. Did you provide valid global"
+            " key?");
+        return;
+      }
+      final Offset position = renderBox.localToGlobal(Offset.zero);
+
       if (Platform.isAndroid) {
-        _wasInFullScreenBeforePiP = _isFullScreen;
-        await videoPlayerController?.enablePictureInPicture(
-            left: 0, top: 0, width: 0, height: 0);
-        enterFullScreen();
+        videoPlayerController?.updateIsPip(true);
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+        Navigator.of(playerContext, rootNavigator: true).push(
+          PageRouteBuilder<dynamic>(
+            allowSnapshotting: false,
+            maintainState: false,
+            settings: RouteSettings(name: 'better_player_pip'),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+            pageBuilder: (context, animation, secondaryAnimation) => Container(
+              alignment: Alignment.topCenter,
+              color: Colors.black,
+              child: AspectRatio(
+                aspectRatio: getAspectRatio() ?? 16 / 9,
+                child: VideoPlayer(videoPlayerController),
+              ),
+            ),
+          ),
+        );
+
+        await Future.delayed(Duration(milliseconds: 100));
+        await videoPlayerController?.enablePictureInPicture(
+          left: 0.0,
+          top: 0.0,
+          width: renderBox.size.width,
+          height: renderBox.size.height,
+        );
+
         return;
       }
       if (Platform.isIOS) {
-        final RenderBox? renderBox = betterPlayerGlobalKey.currentContext!
-            .findRenderObject() as RenderBox?;
-        if (renderBox == null) {
-          BetterPlayerUtils.log(
-              "Can't show PiP. RenderBox is null. Did you provide valid global"
-              " key?");
-          return;
-        }
-        final Offset position = renderBox.localToGlobal(Offset.zero);
+        videoPlayerController?.updateIsPip(true);
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         await videoPlayerController?.enablePictureInPicture(
           left: position.dx,
           top: position.dy,
           width: renderBox.size.width,
           height: renderBox.size.height,
         );
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         return;
       } else {
         BetterPlayerUtils.log("Unsupported PiP in current platform.");
