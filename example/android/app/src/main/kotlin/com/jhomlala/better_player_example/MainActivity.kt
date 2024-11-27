@@ -21,6 +21,7 @@ class MainActivity : FlutterActivity() {
             ConstraintLayout(this).apply {
                 tag = PIP_CONTAINER
                 isVisible = false
+                elevation = 99F
                 setBackgroundColor(Color.BLACK)
             }, ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,

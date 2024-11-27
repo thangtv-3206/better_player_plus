@@ -136,8 +136,8 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 val currentBetterPlayer = videoPlayers.values.lastOrNull()
                 if (currentBetterPlayer != null) {
                     val textureId = currentBetterPlayer.textureEntry.id();
+                    currentBetterPlayer.exoPlayer.clearVideoSurface()
                     if (isInPip) {
-                        currentBetterPlayer.exoPlayer.clearVideoSurface()
                         pipContainer.findViewWithTag<PlayerView>(textureId)?.player =
                             currentBetterPlayer.exoPlayer
                         currentBetterPlayer.onPictureInPictureStatusChanged(true)
