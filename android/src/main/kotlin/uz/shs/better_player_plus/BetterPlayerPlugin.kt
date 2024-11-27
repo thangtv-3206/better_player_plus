@@ -12,12 +12,18 @@ import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
+import android.util.ArrayMap
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.doOnLayout
+import androidx.core.view.isVisible
+import androidx.media3.ui.PlayerView
 import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
@@ -28,23 +34,39 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
+import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
 import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
+import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.HEIGHT_PARAMETER
+import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.LEFT_PARAMETER
+import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.TAG
+import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.TOP_PARAMETER
+import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.WIDTH_PARAMETER
 import java.lang.Exception
 import java.util.HashMap
 
 /**
  * Android platform implementation of the VideoPlayerPlugin.
  */
-class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
-    private val videoPlayers = LongSparseArray<BetterPlayer>()
+class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
+    PluginRegistry.UserLeaveHintListener, OnGlobalLayoutListener {
+    private var isInPip = false
+    private val PIP_CONTAINER = "PIP_CONTAINER"
+    private val videoPlayers = ArrayMap<Long, BetterPlayer>()
     private val dataSources = LongSparseArray<Map<String, Any?>>()
     private var flutterState: FlutterState? = null
     private var currentNotificationTextureId: Long = -1
     private var currentNotificationDataSource: Map<String, Any?>? = null
+    private var activityPluginBinding: ActivityPluginBinding? = null
     private var activity: Activity? = null
-    private var pipHandler: Handler? = null
-    private var pipRunnable: Runnable? = null
+    private var beforePipSourceRectHint: Rect? = null;
+    private var inPipSourceRectHint: Rect? = null;
+
+    private val pipContainer: ViewGroup?
+        get() = activity?.window?.decorView?.findViewWithTag<ViewGroup>(
+            PIP_CONTAINER
+        )
+
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         val loader = FlutterLoader()
         flutterState = FlutterState(
@@ -79,18 +101,86 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         flutterState = null
     }
 
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        activity = binding.activity
+    override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
+        this.activityPluginBinding = activityPluginBinding
+        activity = activityPluginBinding.activity
+        activityPluginBinding.addOnUserLeaveHintListener(this)
+        activity!!.window.decorView.doOnLayout {
+            pipContainer?.viewTreeObserver?.addOnGlobalLayoutListener(this)
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {}
 
-    override fun onDetachedFromActivity() {}
+    override fun onDetachedFromActivity() {
+        activityPluginBinding?.removeOnUserLeaveHintListener(this)
+        pipContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
+    }
+
+    override fun onUserLeaveHint() {
+        val currentBetterPlayer = videoPlayers.values.lastOrNull()
+        if (currentBetterPlayer != null && currentBetterPlayer.exoPlayer.isPlaying
+            && !activity!!.isInPictureInPictureMode
+            && hasPipPermission(flutterState!!.applicationContext)
+        ) {
+            enablePictureInPicture(currentBetterPlayer)
+        }
+    }
+
+    override fun onGlobalLayout() {
+        pipContainer?.let { pipContainer ->
+            if (isInPip != pipContainer.isVisible) {
+                isInPip = pipContainer.isVisible
+                val currentBetterPlayer = videoPlayers.values.lastOrNull()
+                if (currentBetterPlayer != null) {
+                    val textureId = currentBetterPlayer.textureEntry.id();
+                    if (isInPip) {
+                        currentBetterPlayer.exoPlayer.clearVideoSurface()
+                        pipContainer.addView(
+                            PlayerView(activity!!).apply {
+                                tag = textureId
+                                player = currentBetterPlayer.exoPlayer
+                                useController = false
+                            },
+                            ConstraintLayout.LayoutParams(
+                                ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
+                                ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                            ).apply {
+                                dimensionRatio = "16:9"
+                                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                            }
+                        )
+                        currentBetterPlayer.onPictureInPictureStatusChanged(true)
+                    } else {
+                        pipContainer.findViewWithTag<View>(textureId)?.let {
+                            pipContainer.removeView(it)
+                        }
+                        currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
+                        currentBetterPlayer.onPictureInPictureStatusChanged(false)
+                        currentBetterPlayer.disposeMediaSession()
+                        updatePictureInPictureParams();
+                    }
+                }
+            }
+
+            if (isInPip) {
+                val rect = Rect()
+                pipContainer.getGlobalVisibleRect(rect)
+                if (!rect.isEmpty) {
+                    inPipSourceRectHint = rect
+                    updatePictureInPictureParams();
+                }
+            }
+        }
+    }
 
     private fun disposeAllPlayers() {
-        for (i in 0 until videoPlayers.size()) {
+        pipContainer?.removeAllViews()
+        for (i in 0 until videoPlayers.size) {
             videoPlayers.valueAt(i).dispose()
         }
         videoPlayers.clear()
@@ -121,11 +211,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                         call.argument(BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
                     )
                 }
-                val player = BetterPlayer(
+                val betterPlayer = BetterPlayer(
                     flutterState?.applicationContext!!, eventChannel, handle,
                     customDefaultLoadControl, result
                 )
-                videoPlayers.put(handle.id(), player)
+                videoPlayers.put(handle.id(), betterPlayer)
             }
 
             PRE_CACHE_METHOD -> preCache(call, result)
@@ -215,13 +305,13 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
                 val density = activity!!.resources.displayMetrics.density
-                enablePictureInPicture(
-                    player,
-                    call.argument<Double>(LEFT_PARAMETER)!! * density,
-                    call.argument<Double>(TOP_PARAMETER)!! * density,
-                    call.argument<Double>(WIDTH_PARAMETER)!! * density,
-                    call.argument<Double>(HEIGHT_PARAMETER)!! * density
-                )
+                val left = (call.argument<Double>(LEFT_PARAMETER)!! * density).toInt()
+                val top = (call.argument<Double>(TOP_PARAMETER)!! * density).toInt()
+                val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
+                val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
+                beforePipSourceRectHint = Rect(left, top, left + width, top + height)
+
+                enablePictureInPicture(player)
                 result.success(null)
             }
 
@@ -389,7 +479,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     }
 
     private fun getTextureId(betterPlayer: BetterPlayer): Long? {
-        for (index in 0 until videoPlayers.size()) {
+        for (index in 0 until videoPlayers.size) {
             if (betterPlayer === videoPlayers.valueAt(index)) {
                 return videoPlayers.keyAt(index)
             }
@@ -430,7 +520,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     }
 
     private fun removeOtherNotificationListeners() {
-        for (index in 0 until videoPlayers.size()) {
+        for (index in 0 until videoPlayers.size) {
             videoPlayers.valueAt(index).disposeRemoteNotifications()
         }
     }
@@ -452,58 +542,40 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             .hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     }
 
-    private fun enablePictureInPicture(
-        player: BetterPlayer,
-        left: Double,
-        top: Double,
-        width: Double,
-        height: Double
-    ) {
+    private fun enablePictureInPicture(player: BetterPlayer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            player.setupMediaSession(flutterState!!.applicationContext)
             activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(16, 9))
                 .apply {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        setSeamlessResizeEnabled(true)
+                    beforePipSourceRectHint?.let {
+                        setSourceRectHint(it)
                     }
                 }
-                .setSourceRectHint(
-                    Rect(
-                        left.toInt(),
-                        top.toInt(),
-                        (width + left).toInt(),
-                        (height + top).toInt()
-                    )
-                )
-                .build()
-            )
-            startPictureInPictureListenerTimer(player)
-            player.onPictureInPictureStatusChanged(true)
+                .build())
         }
+    }
+
+    private fun updatePictureInPictureParams() {
+        activity?.setPictureInPictureParams(PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(16, 9))
+            .apply {
+                if (isInPip) {
+                    inPipSourceRectHint?.let {
+                        setSourceRectHint(it)
+                    }
+                } else {
+                    beforePipSourceRectHint?.let {
+                        setSourceRectHint(it)
+                    }
+                }
+            }
+            .build()
+        )
     }
 
     private fun disablePictureInPicture(player: BetterPlayer) {
-        stopPipHandler()
         activity!!.moveTaskToBack(false)
-        player.onPictureInPictureStatusChanged(false)
         player.disposeMediaSession()
-    }
-
-    private fun startPictureInPictureListenerTimer(player: BetterPlayer) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            pipHandler = Handler(Looper.getMainLooper())
-            pipRunnable = Runnable {
-                if (activity!!.isInPictureInPictureMode) {
-                    pipHandler!!.postDelayed(pipRunnable!!, 100)
-                } else {
-                    player.onPictureInPictureStatusChanged(false)
-                    player.disposeMediaSession()
-                    stopPipHandler()
-                }
-            }
-            pipHandler!!.post(pipRunnable!!)
-        }
     }
 
     private fun openPipPermissionSettings() {
@@ -548,18 +620,14 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     }
 
     private fun dispose(player: BetterPlayer, textureId: Long) {
+        pipContainer?.let { parent ->
+            parent.findViewWithTag<View>(textureId)?.let {
+                parent.removeView(it)
+            }
+        }
         player.dispose()
         videoPlayers.remove(textureId)
         dataSources.remove(textureId)
-        stopPipHandler()
-    }
-
-    private fun stopPipHandler() {
-        if (pipHandler != null) {
-            pipHandler!!.removeCallbacksAndMessages(null)
-            pipHandler = null
-        }
-        pipRunnable = null
     }
 
     private interface KeyForAssetFn {

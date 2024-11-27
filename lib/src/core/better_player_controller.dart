@@ -10,7 +10,6 @@ import 'package:better_player_plus/src/video_player/video_player.dart';
 import 'package:better_player_plus/src/video_player/video_player_platform_interface.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 ///Class used to control overall Better Player behavior. Main class to change
@@ -783,13 +782,13 @@ class BetterPlayerController {
       _hasCurrentDataSourceInitialized = true;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.initialized));
     }
+
     if (currentVideoPlayerValue.isPip) {
+      if (!_wasInPipMode) {
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
+      }
       _wasInPipMode = true;
     } else if (_wasInPipMode) {
-      Navigator.of(betterPlayerGlobalKey!.currentContext!, rootNavigator: true)
-          .popUntil((route) => route.settings.name != 'better_player_pip');
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
-          overlays: SystemUiOverlay.values);
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStop));
       _wasInPipMode = false;
       videoPlayerController?.refresh();
@@ -1021,9 +1020,8 @@ class BetterPlayerController {
         }
       }
       if (appLifecycleState == AppLifecycleState.paused) {
-        _wasPlayingBeforePause ??= isPlaying();
-        if (isPipMode() != true ||
-            (Platform.isAndroid && !(await hasPipPermission()))) {
+        if (Platform.isAndroid || isPipMode() != true) {
+          _wasPlayingBeforePause ??= isPlaying();
           pause();
         }
       }
@@ -1080,46 +1078,22 @@ class BetterPlayerController {
       final Offset position = renderBox.localToGlobal(Offset.zero);
 
       if (Platform.isAndroid) {
-        videoPlayerController?.updateIsPip(true);
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
-        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-        Navigator.of(playerContext, rootNavigator: true).push(
-          PageRouteBuilder<dynamic>(
-            allowSnapshotting: false,
-            maintainState: false,
-            settings: RouteSettings(name: 'better_player_pip'),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-            pageBuilder: (context, animation, secondaryAnimation) => Container(
-              alignment: Alignment.topCenter,
-              color: Colors.black,
-              child: AspectRatio(
-                aspectRatio: getAspectRatio() ?? 16 / 9,
-                child: VideoPlayer(videoPlayerController),
-              ),
-            ),
-          ),
-        );
-
-        await Future.delayed(Duration(milliseconds: 100));
-        await videoPlayerController?.enablePictureInPicture(
-          left: 0.0,
-          top: 0.0,
-          width: renderBox.size.width,
-          height: renderBox.size.height,
-        );
-
-        return;
-      }
-      if (Platform.isIOS) {
-        videoPlayerController?.updateIsPip(true);
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         await videoPlayerController?.enablePictureInPicture(
           left: position.dx,
           top: position.dy,
           width: renderBox.size.width,
           height: renderBox.size.height,
         );
+        return;
+      }
+      if (Platform.isIOS) {
+        await videoPlayerController?.enablePictureInPicture(
+          left: position.dx,
+          top: position.dy,
+          width: renderBox.size.width,
+          height: renderBox.size.height,
+        );
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
         return;
       } else {
         BetterPlayerUtils.log("Unsupported PiP in current platform.");
