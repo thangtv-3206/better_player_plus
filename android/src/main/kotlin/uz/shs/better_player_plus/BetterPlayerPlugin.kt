@@ -17,6 +17,7 @@ import android.util.ArrayMap
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
+import androidx.media3.common.util.UnstableApi
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
@@ -48,6 +49,7 @@ import java.util.HashMap
 /**
  * Android platform implementation of the VideoPlayerPlugin.
  */
+@UnstableApi
 class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.UserLeaveHintListener, OnGlobalLayoutListener {
     private var isInPip = false

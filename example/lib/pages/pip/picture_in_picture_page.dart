@@ -6,15 +6,13 @@ import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const EventChannel _androidPipStatusEventChannel =
-    EventChannel('better_player_plus/pip_status_event_channel');
-
 class PictureInPicturePage extends StatefulWidget {
   @override
   _PictureInPicturePageState createState() => _PictureInPicturePageState();
 }
 
-class _PictureInPicturePageState extends State<PictureInPicturePage> with WidgetsBindingObserver {
+class _PictureInPicturePageState extends State<PictureInPicturePage>
+    with WidgetsBindingObserver {
   late BetterPlayerController _betterPlayerController;
   GlobalKey _betterPlayerKey = GlobalKey();
   late bool _shouldStartPIP = false;
@@ -57,53 +55,24 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
         ));
     _betterPlayerController.setBetterPlayerGlobalKey(_betterPlayerKey);
     _betterPlayerController.addEventsListener(eventListener);
-    if (Platform.isAndroid) {
-      // this event should be called from Android onPictureInPictureModeChanged
-      // with iOS we handle event from BetterPlayerEventType
-      // don't cancel this stream
-      _androidPipStatusEventChannel.receiveBroadcastStream().listen((pipStatus) {
-        if (pipStatus is! num || !context.mounted) return;
-        BetterPlayerEventType pipStatusEventType;
-        if (pipStatus == 1) {
-          pipStatusEventType = BetterPlayerEventType.enteringPip;
-        } else if (pipStatus == 0) {
-          pipStatusEventType = BetterPlayerEventType.restorePip;
-        } else {
-          // -1
-          pipStatusEventType = BetterPlayerEventType.closePip;
-        }
-        handlePipStatusEvent(pipStatusEventType);
-      });
-    }
     super.initState();
   }
 
-Future<void> handlePipStatusEvent(BetterPlayerEventType eventType) async {
+  Future<void> handlePipStatusEvent(BetterPlayerEventType eventType) async {
     switch (eventType) {
       case BetterPlayerEventType.enteringPip:
-        if (Platform.isAndroid) {
-          if (await _betterPlayerController.hasPipPermission()) {
-            if (!_betterPlayerController.isFullScreen) {
-              _betterPlayerController.enterFullScreen();
-            }
-            _betterPlayerController.setControlsEnabled(false);
-          } else {
-            _betterPlayerController.pause();
-          }
-        } else {
+        if (Platform.isIOS) {
           _betterPlayerController.setControlsEnabled(false);
         }
       case BetterPlayerEventType.restorePip:
-        if (Platform.isAndroid) {
-          _betterPlayerController.exitFullScreen();
+        if (Platform.isIOS) {
+          _betterPlayerController.setControlsEnabled(true);
         }
-        _betterPlayerController.setControlsEnabled(true);
       case BetterPlayerEventType.closePip:
-        if (Platform.isAndroid) {
-          _betterPlayerController.exitFullScreen();
+        if (Platform.isIOS) {
+          _betterPlayerController.pause();
+          _betterPlayerController.setControlsEnabled(true);
         }
-        _betterPlayerController.pause();
-        _betterPlayerController.setControlsEnabled(true);
       // ignore: no_default_cases
       default:
     }
@@ -130,7 +99,7 @@ Future<void> handlePipStatusEvent(BetterPlayerEventType eventType) async {
     debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
     switch (event.betterPlayerEventType) {
       case BetterPlayerEventType.play:
-        if (Platform.isAndroid || !_isPiPMode) {
+        if (Platform.isIOS && !_isPiPMode) {
           _betterPlayerController.setAutomaticPipMode(autoPip: true);
           setState(() {
             _shouldStartPIP = true;
@@ -138,7 +107,7 @@ Future<void> handlePipStatusEvent(BetterPlayerEventType eventType) async {
         }
         break;
       case BetterPlayerEventType.pause:
-        if (Platform.isAndroid || !_isPiPMode) {
+        if (Platform.isIOS && !_isPiPMode) {
           _betterPlayerController.setAutomaticPipMode(autoPip: false);
           setState(() {
             _shouldStartPIP = false;
@@ -193,17 +162,16 @@ Future<void> handlePipStatusEvent(BetterPlayerEventType eventType) async {
               _betterPlayerController.disablePictureInPicture();
             },
           ),
-          ElevatedButton(
-            child: Text('Auto PIP: ' + (_shouldStartPIP ? 'ON' : 'OFF')),
-            onPressed: () async {
-              setState(() {
-                if (Platform.isAndroid) {
-                  _shouldStartPIP = !_shouldStartPIP;
-                }
-                _betterPlayerController.setAutomaticPipMode(autoPip: _shouldStartPIP);
-              });
-            },
-          ),
+          if (Platform.isIOS)
+            ElevatedButton(
+              child: Text('Auto PIP: ' + (_shouldStartPIP ? 'ON' : 'OFF')),
+              onPressed: () async {
+                setState(() {
+                  _betterPlayerController.setAutomaticPipMode(
+                      autoPip: _shouldStartPIP);
+                });
+              },
+            ),
         ],
       ),
     );

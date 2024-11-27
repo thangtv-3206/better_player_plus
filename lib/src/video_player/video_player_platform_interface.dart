@@ -479,13 +479,13 @@ enum VideoEventType {
   /// Picture in picture mode has been dismissed
   pipStop,
 
-  /// start show PIP
-  enteringPip, 
+  /// IOS only: start show PIP
+  enteringPip,
 
-  /// close PIP by press close X
+  /// IOS only: close PIP by press close X
   closePip,
 
-  /// restore UI from PIP
+  /// IOS only: restore UI from PIP
   restorePip, 
   
   /// An unknown event has been received.
