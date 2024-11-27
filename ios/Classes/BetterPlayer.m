@@ -29,6 +29,10 @@ bool isRestorePip = false;
     _disposed = false;
     _player = [[AVPlayer alloc] init];
     _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+    if (self) {
+        _isHandlingStalled = NO;
+        _isTransitioning = NO;
+    }
     ///Fix for loading large videos
     if (@available(iOS 10.0, *)) {
         _player.automaticallyWaitsToMinimizeStalling = false;
@@ -323,12 +327,12 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
     if ([path isEqualToString:@"rate"]) {
         if (@available(iOS 10.0, *)) {
-            if (_pipController.pictureInPictureActive == true){
-                if (_lastAvPlayerTimeControlStatus != [NSNull null] && _lastAvPlayerTimeControlStatus == _player.timeControlStatus){
+            if (_pipController.pictureInPictureActive == true) {
+                if (_lastAvPlayerTimeControlStatus == _player.timeControlStatus) {
                     return;
                 }
 
-                if (_player.timeControlStatus == AVPlayerTimeControlStatusPaused){
+                if (_player.timeControlStatus == AVPlayerTimeControlStatusPaused) {
                     _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
                     if (_eventSink != nil) {
                       _eventSink(@{@"event" : @"pause"});
@@ -336,7 +340,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                     return;
 
                 }
-                if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying){
+                if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
                     _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
                     if (_eventSink != nil) {
                       _eventSink(@{@"event" : @"play"});
@@ -344,12 +348,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                 }
             }
         }
-
-        if (_player.rate == 0 && //if player rate dropped to 0
-            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, >, kCMTimeZero) && //if video was started
-            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, <, _player.currentItem.duration) && //but not yet finished
-            _isPlaying) { //instance variable to handle overall state (changed to YES when user triggers playback)
+        
+        if (_player.rate == 0 &&
+            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, >, kCMTimeZero) &&
+            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, <, _player.currentItem.duration) &&
+            !_isHandlingStalled) {
+            _isHandlingStalled = YES;
             [self handleStalled];
+            _isHandlingStalled = NO;
         }
     }
 
@@ -426,15 +432,22 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 
     if (_isPlaying) {
-        if (@available(iOS 10.0, *)) {
-            [_player playImmediatelyAtRate:1.0];
-            _player.rate = _playerRate;
-        } else {
-            [_player play];
+        if (_player.rate == 0) {
+            if (@available(iOS 10.0, *)) {
+                [_player playImmediatelyAtRate:1.0];
+            } else {
+                [_player play];
+            }
             _player.rate = _playerRate;
         }
     } else {
-        [_player pause];
+        if (_pipController.pictureInPictureActive == false) {
+            [_player pause];
+        } else {
+            if (_player.rate != 0) {
+                [_player pause];
+            }
+        }
     }
 }
 
@@ -489,6 +502,15 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)play {
+    if (_isTransitioning) {
+        return;
+    }
+    
+    _isTransitioning = true;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.isTransitioning = false;
+    });
+    
     _stalledCount = 0;
     _isStalledCheckStarted = false;
     _isPlaying = true;
@@ -496,6 +518,15 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)pause {
+    if (_isTransitioning) {
+        return;
+    }
+    
+    _isTransitioning = true;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        self.isTransitioning = false;
+    });
+    
     _isPlaying = false;
     [self updatePlayingState];
 }
@@ -526,13 +557,11 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     ///When player is playing, pause video, seek to new position and start again. This will prevent issues with seekbar jumps.
     bool wasPlaying = _isPlaying;
     if (wasPlaying){
-        if (wasPlaying){
-            if (self._willStartPictureInPicture) {
-                // PIP doesn't work if player pauses, so when seeking we make the player play but with minimum speed
-                _player.rate = 0.1;
-            } else {
-                [_player pause];
-            }
+        if (self._willStartPictureInPicture) {
+            // PIP doesn't work if player pauses, so when seeking we make the player play but with minimum speed
+            _player.rate = 0.1;
+        } else {
+            [_player pause];
         }
     }
 
