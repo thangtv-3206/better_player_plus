@@ -138,27 +138,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     val textureId = currentBetterPlayer.textureEntry.id();
                     if (isInPip) {
                         currentBetterPlayer.exoPlayer.clearVideoSurface()
-                        pipContainer.addView(
-                            PlayerView(activity!!).apply {
-                                tag = textureId
-                                player = currentBetterPlayer.exoPlayer
-                                useController = false
-                            },
-                            ConstraintLayout.LayoutParams(
-                                ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
-                                ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
-                            ).apply {
-                                dimensionRatio = "16:9"
-                                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                            }
-                        )
+                        pipContainer.findViewWithTag<PlayerView>(textureId)?.player =
+                            currentBetterPlayer.exoPlayer
                         currentBetterPlayer.onPictureInPictureStatusChanged(true)
                     } else {
-                        pipContainer.findViewWithTag<View>(textureId)?.let {
-                            pipContainer.removeView(it)
-                        }
+                        pipContainer.findViewWithTag<PlayerView>(textureId)?.player = null
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
                         currentBetterPlayer.onPictureInPictureStatusChanged(false)
                         currentBetterPlayer.disposeMediaSession()
@@ -215,6 +199,23 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     flutterState?.applicationContext!!, eventChannel, handle,
                     customDefaultLoadControl, result
                 )
+
+                pipContainer?.addView(
+                    PlayerView(activity!!).apply {
+                        tag = handle.id()
+                        useController = false
+                    },
+                    ConstraintLayout.LayoutParams(
+                        ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
+                        ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                    ).apply {
+                        dimensionRatio = "16:9"
+                        endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                        startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                        topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                    }
+                )
+
                 videoPlayers.put(handle.id(), betterPlayer)
             }
 
