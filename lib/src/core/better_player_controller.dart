@@ -187,7 +187,7 @@ class BetterPlayerController {
   VideoPlayerValue? _videoPlayerValueOnError;
 
   ///Flag which holds information about player visibility
-  bool _isPlayerVisible = true;
+  bool isPlayerVisible = true;
 
   final StreamController<BetterPlayerControllerEvent>
       _controllerEventStreamController = StreamController.broadcast();
@@ -554,7 +554,7 @@ class BetterPlayerController {
       }
       if (_isAutomaticPlayPauseHandled()) {
         if (_appLifecycleState == AppLifecycleState.resumed &&
-            _isPlayerVisible) {
+            isPlayerVisible) {
           await play();
         } else {
           _wasPlayingBeforePause = true;
@@ -926,7 +926,7 @@ class BetterPlayerController {
   ///used. If showNotification is set in data source or handleLifecycle is false
   /// then this logic will be ignored.
   void onPlayerVisibilityChanged(double visibilityFraction) async {
-    _isPlayerVisible = visibilityFraction > 0;
+    isPlayerVisible = visibilityFraction > 0;
     if (_disposed) {
       return;
     }
@@ -1016,7 +1016,7 @@ class BetterPlayerController {
     if (_isAutomaticPlayPauseHandled()) {
       _appLifecycleState = appLifecycleState;
       if (appLifecycleState == AppLifecycleState.resumed) {
-        if (_wasPlayingBeforePause == true && _isPlayerVisible) {
+        if (_wasPlayingBeforePause == true && isPlayerVisible) {
           play();
         }
       }
