@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:better_player_example/constants.dart';
+import 'package:better_player_example/pages/pip/live_video_controls.dart';
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -27,6 +28,21 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> {
         DeviceOrientation.portraitDown,
         DeviceOrientation.portraitUp
       ],
+      controlsConfiguration: BetterPlayerControlsConfiguration(
+        showControlsOnInitialize: false,
+        controlBarHeight: 24,
+        controlBarColor: Colors.black54,
+        playerTheme: BetterPlayerTheme.custom,
+        qualitiesIcon: Icons.settings,
+        enableSubtitles: false,
+        customControlsBuilder: (controller, onPlayerVisibilityChanged) {
+          return LiveVideoControls(
+            onClickOpenJyo: () {},
+            onClickOpenChangeQuality: () {},
+            onClickOpenChat: () {},
+          );
+        },
+      ),
     );
     _betterPlayerController = BetterPlayerController(betterPlayerConfiguration,
         betterPlayerDataSource: BetterPlayerDataSource.network(
