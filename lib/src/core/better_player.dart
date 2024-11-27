@@ -72,7 +72,7 @@ class _BetterPlayerState extends State<BetterPlayer>
     _deviceOrientationSubscription =
         deviceOrientationStream.skip(1).listen((deviceOrientation) {
       var controller = widget.controller;
-
+      if (!controller.isPlayerVisible) return;
       if (!_isFullScreenByRotate &&
           controller.controlsEnabled &&
           !controller.isFullScreen &&
@@ -80,7 +80,6 @@ class _BetterPlayerState extends State<BetterPlayer>
               .contains(deviceOrientation)) {
         _isFullScreenByRotate = true;
         controller.enterFullScreen();
-        SystemChrome.setPreferredOrientations([deviceOrientation]);
       } else if (_isFullScreenByRotate &&
           controller.isFullScreen &&
           deviceOrientation == DeviceOrientation.portraitUp) {
@@ -88,8 +87,6 @@ class _BetterPlayerState extends State<BetterPlayer>
             _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
         Future.delayed(Duration(milliseconds: 300))
             .then((_) => controller.exitFullScreen());
-      } else if (controller.isFullScreen) {
-        SystemChrome.setPreferredOrientations([deviceOrientation]);
       }
     });
   }
@@ -196,8 +193,8 @@ class _BetterPlayerState extends State<BetterPlayer>
     );
   }
 
-  Widget _buildFullScreenVideo(BuildContext context,
-      BetterPlayerControllerProvider controllerProvider) {
+  Widget _buildFullScreenVideo(
+      BuildContext context, BetterPlayerControllerProvider controllerProvider) {
     return Scaffold(
       backgroundColor: Colors.black,
       resizeToAvoidBottomInset: false,
@@ -233,6 +230,7 @@ class _BetterPlayerState extends State<BetterPlayer>
     );
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    await SystemChrome.setPreferredOrientations([]);
     if (!_betterPlayerConfiguration.allowedScreenSleep) {
       WakelockPlus.enable();
     }
