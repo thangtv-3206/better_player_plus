@@ -28,7 +28,11 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.green,
         ),
-        home: WelcomePage(),
+        home: Navigator(
+          onGenerateRoute: (settings) => MaterialPageRoute(
+            builder: (context) => WelcomePage(),
+          ),
+        ),
       ),
     );
   }
