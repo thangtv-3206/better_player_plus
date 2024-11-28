@@ -1,6 +1,7 @@
 import 'package:better_player_example/pages/welcome_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_in_app_pip/pip_material_app.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() => runApp(MyApp());
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
       shortcuts: <LogicalKeySet, Intent>{
         LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
       },
-      child: MaterialApp(
+      child: PiPMaterialApp(
         title: 'Better player demo',
         localizationsDelegates: [
           GlobalMaterialLocalizations.delegate,
