@@ -85,8 +85,7 @@ class _BetterPlayerState extends State<BetterPlayer>
           deviceOrientation == DeviceOrientation.portraitUp) {
         SystemChrome.setPreferredOrientations(
             _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
-        Future.delayed(Duration(milliseconds: 300))
-            .then((_) => controller.exitFullScreen());
+        controller.exitFullScreen();
       }
     });
   }

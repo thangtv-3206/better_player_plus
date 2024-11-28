@@ -5,7 +5,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 const _valueChangedThreshold = 3.0;
 const _orientationChangedThreshold = 8.5;
-const _samplingPeriod = Duration(milliseconds: 200);
+const _samplingPeriod = Duration(milliseconds: Platform.isAndroid ? 200 : 50);
 
 AccelerometerEvent _lastEvent = AccelerometerEvent(0, 0, 0, DateTime(0));
 DeviceOrientation _lastKnownOrientation = DeviceOrientation.portraitUp;
@@ -27,11 +27,10 @@ Stream<DeviceOrientation> deviceOrientationStream =
     final zDiff = (z - _lastEvent.z).abs();
 
     _lastEvent = event;
-
     if (xDiff < _valueChangedThreshold &&
         yDiff < _valueChangedThreshold &&
         zDiff < _valueChangedThreshold) {
-      if (xAbs > yAbs && xAbs > zAbs) {
+      if (xAbs > yAbs && xAbs > zAbs && zAbs < 6) {
         if (x > _orientationChangedThreshold) {
           _lastKnownOrientation = Platform.isIOS
               ? DeviceOrientation.landscapeRight
@@ -41,7 +40,7 @@ Stream<DeviceOrientation> deviceOrientationStream =
               ? DeviceOrientation.landscapeLeft
               : DeviceOrientation.landscapeRight;
         }
-      } else if (yAbs > xAbs && yAbs > zAbs) {
+      } else if (yAbs > xAbs && yAbs > zAbs && zAbs < 6) {
         if (y > _orientationChangedThreshold) {
           _lastKnownOrientation = DeviceOrientation.portraitUp;
         } else if (y < -_orientationChangedThreshold) {
