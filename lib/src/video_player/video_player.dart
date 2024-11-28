@@ -634,10 +634,12 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   Future<void> setAutomaticPipMode({required bool autoPip}) async {
-    await _videoPlayerPlatform.setAutomaticPipMode(
-      textureId: textureId,
-      autoPip: autoPip,
-    );
+    if (Platform.isIOS) {
+      await _videoPlayerPlatform.setAutomaticPipMode(
+        textureId: textureId,
+        autoPip: autoPip,
+      );
+    }
   }
 
   void refresh() {

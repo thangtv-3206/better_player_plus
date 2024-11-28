@@ -67,4 +67,5 @@ flutter {
 
 dependencies {
     implementation "androidx.multidex:multidex:2.0.1"
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.3'
 }
