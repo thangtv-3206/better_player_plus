@@ -604,13 +604,13 @@ class BetterPlayerController {
   }
 
   ///Start video playback. Play will be triggered only if current lifecycle state
-  ///is resumed.
+  ///is resumed or Pip mode
   Future<void> play() async {
     if (videoPlayerController == null) {
       throw StateError("The data source has not been initialized");
     }
 
-    if (_appLifecycleState == AppLifecycleState.resumed) {
+    if (_appLifecycleState == AppLifecycleState.resumed || isPipMode() == true) {
       await videoPlayerController!.play();
       _hasCurrentDataSourceStarted = true;
       _wasPlayingBeforePause = null;
@@ -1149,6 +1149,27 @@ class BetterPlayerController {
     await videoPlayerController!.openPipPermissionSettings();
   }
 
+  ///Set up to start Picture in Picture automatically when hide app.
+  ///When device is not supported, PiP mode won't be open.
+  Future<void>? setAutomaticPipMode({required bool autoPip}) async {
+    if (Platform.isIOS) {
+      if (videoPlayerController == null) {
+        throw StateError("The data source has not been initialized");
+      }
+      final bool isPipSupported =
+          (await videoPlayerController?.isPictureInPictureSupported()) ?? false;
+      if (isPipSupported) {
+        await videoPlayerController?.setAutomaticPipMode(
+          autoPip: autoPip,
+        );
+      } else {
+        BetterPlayerUtils.log("Picture in picture is not supported in this device. If you're "
+            "using Android, please check if you're using activity v2 "
+            "embedding.");
+      }
+    }
+  }
+
   ///Handle VideoEvent when remote controls notification / PiP is shown
   void _handleVideoEvent(VideoEvent event) async {
     switch (event.eventType) {
@@ -1184,6 +1205,15 @@ class BetterPlayerController {
         break;
       case VideoEventType.bufferingEnd:
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.bufferingEnd));
+        break;
+      case VideoEventType.enteringPip:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.enteringPip));
+        break;
+      case VideoEventType.closePip:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.closePip));
+        break;
+      case VideoEventType.restorePip:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.restorePip));
         break;
       default:
 

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import androidx.media3.common.util.UnstableApi
 import androidx.work.Data
 import androidx.work.WorkerParameters
 import androidx.work.Worker
@@ -14,6 +15,7 @@ import java.lang.Exception
 import java.net.HttpURLConnection
 import java.net.URL
 
+@UnstableApi
 class ImageWorker(
     context: Context,
     params: WorkerParameters

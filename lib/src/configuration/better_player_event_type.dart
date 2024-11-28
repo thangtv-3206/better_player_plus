@@ -25,4 +25,7 @@ enum BetterPlayerEventType {
   bufferingUpdate,
   bufferingEnd,
   changedPlaylistItem,
+  enteringPip, // IOS only: start show PIP
+  closePip, // IOS only: close PIP by press close X
+  restorePip, // IOS only: restore UI from PIP
 }

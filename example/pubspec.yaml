@@ -11,6 +11,7 @@ dependencies:
     path: ../
   flutter:
     sdk: flutter
+  flutter_in_app_pip: ^1.7.4
   flutter_localizations:
     sdk: flutter
   path_provider: ^2.1.1

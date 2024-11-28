@@ -17,6 +17,7 @@ import android.util.ArrayMap
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
+import androidx.media3.common.util.UnstableApi
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
@@ -48,6 +49,7 @@ import java.util.HashMap
 /**
  * Android platform implementation of the VideoPlayerPlugin.
  */
+@UnstableApi
 class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.UserLeaveHintListener, OnGlobalLayoutListener {
     private var isInPip = false
@@ -224,11 +226,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             CLEAR_CACHE_METHOD -> clearCache(result)
             else -> {
                 if (call.argument<Any>(TEXTURE_ID_PARAMETER) == null) {
-//                    result.error(
-//                        "Unknown textureId",
-//                        "No video player associated with texture id",
-//                        null
-//                    )
                     return
                 }
                 val textureId = ((call.argument<Any>(TEXTURE_ID_PARAMETER) as Int?) ?: 0).toLong()
@@ -383,18 +380,20 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 flutterState!!.keyForAsset[asset]
             }
             player.setDataSource(
-                flutterState?.applicationContext!!,
-                key,
-                "asset:///$assetLookupKey",
-                null,
-                result,
-                headers,
-                false,
-                0L,
-                0L,
-                overriddenDuration.toLong(),
-                null,
-                null, null, null
+                context = flutterState?.applicationContext!!,
+                key = key,
+                dataSource = "asset:///$assetLookupKey",
+                formatHint = null,
+                result = result,
+                headers = headers,
+                useCache = false,
+                maxCacheSize = 0L,
+                maxCacheFileSize = 0L,
+                overriddenDuration = overriddenDuration.toLong(),
+                licenseUrl = null,
+                drmHeaders = null,
+                cacheKey = null,
+                clearKey = null
             )
         } else {
             val useCache = getParameter(dataSource, USE_CACHE_PARAMETER, false)
@@ -411,20 +410,20 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             val drmHeaders: Map<String, String> =
                 getParameter(dataSource, DRM_HEADERS_PARAMETER, HashMap())
             player.setDataSource(
-                flutterState!!.applicationContext,
-                key,
-                uri,
-                formatHint,
-                result,
-                headers,
-                useCache,
-                maxCacheSize,
-                maxCacheFileSize,
-                overriddenDuration.toLong(),
-                licenseUrl,
-                drmHeaders,
-                cacheKey,
-                clearKey
+                context = flutterState!!.applicationContext,
+                key = key,
+                dataSource = uri,
+                formatHint = formatHint,
+                result = result,
+                headers = headers,
+                useCache = useCache,
+                maxCacheSize = maxCacheSize,
+                maxCacheFileSize = maxCacheFileSize,
+                overriddenDuration = overriddenDuration.toLong(),
+                licenseUrl = licenseUrl,
+                drmHeaders = drmHeaders,
+                cacheKey = cacheKey,
+                clearKey = clearKey
             )
         }
     }
@@ -452,14 +451,14 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             val headers: Map<String, String> =
                 getParameter(dataSource, HEADERS_PARAMETER, HashMap())
             BetterPlayer.preCache(
-                flutterState?.applicationContext,
-                uri,
-                preCacheSize,
-                maxCacheSize,
-                maxCacheFileSize,
-                headers,
-                cacheKey,
-                result
+                context = flutterState?.applicationContext,
+                dataSource = uri,
+                preCacheSize = preCacheSize,
+                maxCacheSize = maxCacheSize,
+                maxCacheFileSize = maxCacheFileSize,
+                headers = headers,
+                cacheKey = cacheKey,
+                result = result
             )
         }
     }
@@ -510,8 +509,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     val activityName =
                         getParameter(dataSource, ACTIVITY_NAME_PARAMETER, "MainActivity")
                     betterPlayer.setupPlayerNotification(
-                        flutterState?.applicationContext!!,
-                        title, author, imageUrl, notificationChannelName, activityName
+                        context = flutterState?.applicationContext!!,
+                        title = title,
+                        author = author,
+                        imageUrl = imageUrl,
+                        notificationChannelName = notificationChannelName,
+                        activityName = activityName
                     )
                 }
             }
