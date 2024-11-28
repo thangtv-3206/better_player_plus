@@ -18,6 +18,7 @@ void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL)
 API_AVAILABLE(ios(9.0))
 AVPictureInPictureController *_pipController;
 bool isRestorePip = false;
+BetterPlayerView* _originPlayerView;
 #endif
 
 @implementation BetterPlayer
@@ -45,6 +46,9 @@ bool isRestorePip = false;
     BetterPlayerView *playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
     playerView.player = _player;
     self._betterPlayerView = playerView;
+    if (_originPlayerView == nil) {
+        _originPlayerView = playerView;
+    }
     return playerView;
 }
 
@@ -657,7 +661,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (!_pipController && playerLayer && [AVPictureInPictureController isPictureInPictureSupported]) {
             _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: playerLayer];
             if (@available(iOS 14.2, *)) {
-                _pipController.canStartPictureInPictureAutomaticallyFromInline = true;
+                _pipController.canStartPictureInPictureAutomaticallyFromInline = self._willStartPictureInPicture;
             }
             _pipController.delegate = self;
         }
@@ -726,9 +730,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (_pipController && playerLayer && [AVPictureInPictureController isPictureInPictureSupported]) {
             if (_pipController.contentSource.playerLayer != playerLayer) {
                 _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerLayer];
+            } else {
+                // incase other playerLayers are disposed, use the original one
+                if (_originPlayerView.playerLayer != nil) {
+                    _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:_originPlayerView.playerLayer];
+                }
             }
             if (@available(iOS 14.2, *)) {
-                _pipController.canStartPictureInPictureAutomaticallyFromInline = true;
+                _pipController.canStartPictureInPictureAutomaticallyFromInline = self._willStartPictureInPicture;
             }
             _pipController.delegate = self;
         }
@@ -857,6 +866,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     [_eventChannel setStreamHandler:nil];
     [self disablePictureInPicture];
     [self setPictureInPicture:false];
+    _originPlayerView = nil;
     _disposed = true;
 }
 
