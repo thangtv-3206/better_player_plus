@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import 'dart:async';
+import 'dart:io';
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player_plus/src/core/better_player_utils.dart';
 import 'package:flutter/foundation.dart';
@@ -274,6 +275,22 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> setAutomaticPipMode({
+    int? textureId,
+    bool? autoPip,
+  }) async {
+    if (Platform.isIOS) {
+      return _channel.invokeMethod<void>(
+        'setAutomaticPipMode',
+        <String, dynamic>{
+          'textureId': textureId,
+          'autoPip': autoPip,
+        },
+      );
+    }
+  }
+
+  @override
   Future<void> setAudioTrack(int? textureId, String? name, int? index) {
     return _channel.invokeMethod<void>(
       'setAudioTrack',
@@ -422,6 +439,24 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         case 'pipStop':
           return VideoEvent(
             eventType: VideoEventType.pipStop,
+            key: key,
+          );
+        
+        case 'enteringPip':
+          return VideoEvent(
+            eventType: VideoEventType.enteringPip,
+            key: key,
+          );
+
+        case 'closePip':
+          return VideoEvent(
+            eventType: VideoEventType.closePip,
+            key: key,
+          );
+
+        case 'restorePip':
+          return VideoEvent(
+            eventType: VideoEventType.restorePip,
             key: key,
           );
 

@@ -164,6 +164,14 @@ abstract class VideoPlayerPlatform {
         'openPipPermissionSettings() has not been implemented.');
   }
 
+  ///Set up auto PiP transition.
+  Future<void> setAutomaticPipMode({
+    int? textureId,
+    bool? autoPip,
+  }) {
+    throw UnimplementedError('setAutomaticPipMode() has not been implemented.');
+  }
+
   Future<void> setAudioTrack(int? textureId, String? name, int? index) {
     throw UnimplementedError('setAudio() has not been implemented.');
   }
@@ -471,6 +479,15 @@ enum VideoEventType {
   /// Picture in picture mode has been dismissed
   pipStop,
 
+  /// IOS only: start show PIP
+  enteringPip,
+
+  /// IOS only: close PIP by press close X
+  closePip,
+
+  /// IOS only: restore UI from PIP
+  restorePip, 
+  
   /// An unknown event has been received.
   unknown,
 }
