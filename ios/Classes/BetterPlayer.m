@@ -659,7 +659,11 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
         AVPlayerLayer *playerLayer = self._betterPlayerView.playerLayer;
         if (!_pipController && playerLayer && [AVPictureInPictureController isPictureInPictureSupported]) {
-            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: playerLayer];
+            if (playerLayer != _originPlayerView.playerLayer && _originPlayerView.playerLayer != nil) {
+                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: _originPlayerView.playerLayer];
+            } else {
+                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: playerLayer];
+            }
             if (@available(iOS 14.2, *)) {
                 _pipController.canStartPictureInPictureAutomaticallyFromInline = self._willStartPictureInPicture;
             }
