@@ -5,7 +5,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 
 const _valueChangedThreshold = 3.0;
 const _orientationChangedThreshold = 8.5;
-const _samplingPeriod = Duration(milliseconds: Platform.isAndroid ? 200 : 50);
+final _samplingPeriod = Duration(milliseconds: Platform.isAndroid ? 200 : 50);
 
 AccelerometerEvent _lastEvent = AccelerometerEvent(0, 0, 0, DateTime(0));
 DeviceOrientation _lastKnownOrientation = DeviceOrientation.portraitUp;
