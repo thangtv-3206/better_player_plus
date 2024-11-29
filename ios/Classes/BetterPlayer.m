@@ -661,6 +661,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (!_pipController && playerLayer && [AVPictureInPictureController isPictureInPictureSupported]) {
             if (playerLayer != _originPlayerView.playerLayer && _originPlayerView.playerLayer != nil) {
                 _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: _originPlayerView.playerLayer];
+                if (self._betterPlayerView != _originPlayerView) {
+                    self._betterPlayerView = _originPlayerView;
+                }
             } else {
                 _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: playerLayer];
             }
@@ -676,7 +679,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void) enablePictureInPicture: (CGRect) frame{
     [self disablePictureInPicture];
-    [self usePlayerLayer:frame];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        [self usePlayerLayer:frame];
+    });
 }
 
 - (void)usePlayerLayer: (CGRect) frame
@@ -738,6 +744,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                 // incase other playerLayers are disposed, use the original one
                 if (_originPlayerView.playerLayer != nil) {
                     _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:_originPlayerView.playerLayer];
+                    if (self._betterPlayerView != _originPlayerView) {
+                        self._betterPlayerView = _originPlayerView;
+                    }
                 }
             }
             if (@available(iOS 14.2, *)) {

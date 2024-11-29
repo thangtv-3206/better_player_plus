@@ -405,7 +405,7 @@ bool _remoteCommandsInitialized = false;
             double height = [argsMap[@"height"] doubleValue];
             [player enablePictureInPicture:CGRectMake(left, top, width, height)];
             // move to background after 1 second to make sure PIP is started
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
                 UIApplication *app = [UIApplication sharedApplication];
                 [app performSelector:@selector(suspend)];
             });
