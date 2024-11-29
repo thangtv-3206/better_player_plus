@@ -659,11 +659,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
         AVPlayerLayer *playerLayer = self._betterPlayerView.playerLayer;
         if (!_pipController && playerLayer && [AVPictureInPictureController isPictureInPictureSupported]) {
-            if (playerLayer != _originPlayerView.playerLayer && _originPlayerView.playerLayer != nil) {
-                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: _originPlayerView.playerLayer];
-            } else {
-                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: playerLayer];
-            }
+            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer: playerLayer];
             if (@available(iOS 14.2, *)) {
                 _pipController.canStartPictureInPictureAutomaticallyFromInline = self._willStartPictureInPicture;
             }
@@ -676,7 +672,11 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void) enablePictureInPicture: (CGRect) frame{
     [self disablePictureInPicture];
-    [self usePlayerLayer:frame];
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+        [self usePlayerLayer:frame];
+    });
 }
 
 - (void)usePlayerLayer: (CGRect) frame
@@ -697,7 +697,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             _pipController = NULL;
         }
         [self setupPipController];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)),
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
                        dispatch_get_main_queue(), ^{
             [self setPictureInPicture:true];
         });
@@ -754,7 +754,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 {
     if (__playerLayer){
         [self._playerLayer removeFromSuperlayer];
-        self._playerLayer = nil;
         if (_pipController) {
             _pipController = nil;
             [self willStartPictureInPicture: true];
