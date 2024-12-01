@@ -137,6 +137,12 @@ abstract class VideoPlayerPlatform {
     throw UnimplementedError('getAbsolutePosition() has not been implemented.');
   }
 
+  Future<void> setBeforePipSourceRectHint(int? textureId, double? top, double? left,
+      double? width, double? height) {
+    throw UnimplementedError(
+        'setBeforePipSourceRectHint() has not been implemented.');
+  }
+
   ///Enables PiP mode.
   Future<void> enablePictureInPicture(int? textureId, double? top, double? left,
       double? width, double? height) {
@@ -162,14 +168,6 @@ abstract class VideoPlayerPlatform {
   Future<void> openPipPermissionSettings(int? textureId) {
     throw UnimplementedError(
         'openPipPermissionSettings() has not been implemented.');
-  }
-
-  ///Set up auto PiP transition.
-  Future<void> setAutomaticPipMode({
-    int? textureId,
-    bool? autoPip,
-  }) {
-    throw UnimplementedError('setAutomaticPipMode() has not been implemented.');
   }
 
   Future<void> setAudioTrack(int? textureId, String? name, int? index) {

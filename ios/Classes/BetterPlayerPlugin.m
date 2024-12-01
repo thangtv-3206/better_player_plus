@@ -23,8 +23,8 @@ bool _remoteCommandsInitialized = false;
 #pragma mark - FlutterPlugin protocol
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     FlutterMethodChannel* channel =
-    [FlutterMethodChannel methodChannelWithName:@"better_player_channel"
-                                binaryMessenger:[registrar messenger]];
+            [FlutterMethodChannel methodChannelWithName:@"better_player_channel"
+                                        binaryMessenger:[registrar messenger]];
     BetterPlayerPlugin* instance = [[BetterPlayerPlugin alloc] initWithRegistrar:registrar];
     [registrar addMethodCallDelegate:instance channel:channel];
     //[registrar publish:instance];
@@ -75,14 +75,22 @@ bool _remoteCommandsInitialized = false;
                result:(FlutterResult)result {
     int64_t textureId = [self newTextureId];
     FlutterEventChannel* eventChannel = [FlutterEventChannel
-                                         eventChannelWithName:[NSString stringWithFormat:@"better_player_channel/videoEvents%lld",
-                                                               textureId]
-                                         binaryMessenger:_messenger];
+            eventChannelWithName:[NSString stringWithFormat:@"better_player_channel/videoEvents%lld",
+                                                            textureId]
+                 binaryMessenger:_messenger];
     [player setMixWithOthers:false];
     [eventChannel setStreamHandler:player];
     player.eventChannel = eventChannel;
     _players[@(textureId)] = player;
     result(@{@"textureId" : @(textureId)});
+}
+
+- (BOOL)isPictureInPictureSupported {
+    if (@available(iOS 9.0, *)) {
+        return [AVPictureInPictureController isPictureInPictureSupported];
+    } else {
+        return NO;
+    }
 }
 
 - (void) setupRemoteNotification :(BetterPlayer*) player{
@@ -279,7 +287,6 @@ bool _remoteCommandsInitialized = false;
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
 
-
     if ([@"init" isEqualToString:call.method]) {
         // Allow audio playback when the Ring/Silent switch is set to silent
         for (NSNumber* textureId in _players) {
@@ -291,6 +298,8 @@ bool _remoteCommandsInitialized = false;
     } else if ([@"create" isEqualToString:call.method]) {
         BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero];
         [self onPlayerSetup:player result:result];
+    } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]) {
+        result([NSNumber numberWithBool:[self isPictureInPictureSupported]]);
     } else {
         NSDictionary* argsMap = call.arguments;
         int64_t textureId = ((NSNumber*)argsMap[@"textureId"]).unsignedIntegerValue;
@@ -310,7 +319,7 @@ bool _remoteCommandsInitialized = false;
             NSString* cacheKey = dataSource[@"cacheKey"];
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
-            
+
             int overriddenDuration = 0;
             if ([dataSource objectForKey:@"overriddenDuration"] != [NSNull null]){
                 overriddenDuration = [dataSource[@"overriddenDuration"] intValue];
@@ -349,24 +358,11 @@ bool _remoteCommandsInitialized = false;
             [self disposeNotificationData:player];
             [self setRemoteCommandsNotificationNotActive];
             [_players removeObjectForKey:@(textureId)];
-            // If the Flutter contains https://github.com/flutter/engine/pull/12695,
-            // the `player` is disposed via `onTextureUnregistered` at the right time.
-            // Without https://github.com/flutter/engine/pull/12695, there is no guarantee that the
-            // texture has completed the un-reregistration. It may leads a crash if we dispose the
-            // `player` before the texture is unregistered. We add a dispatch_after hack to make sure the
-            // texture is unregistered before we dispose the `player`.
-            //
-            // TODO(cyanglaz): Remove this dispatch block when
-            // https://github.com/flutter/flutter/commit/8159a9906095efc9af8b223f5e232cb63542ad0b is in
-            // stable And update the min flutter version of the plugin to the stable version.
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{
-                if (!player.disposed) {
-                    [player dispose];
-                }
-            });
             if ([_players count] == 0) {
                 [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+            }
+            if (!player.disposed) {
+                [player dispose];
             }
             result(nil);
         } else if ([@"setLooping" isEqualToString:call.method]) {
@@ -391,40 +387,29 @@ bool _remoteCommandsInitialized = false;
             result(nil);
         } else if ([@"setSpeed" isEqualToString:call.method]) {
             [player setSpeed:[[argsMap objectForKey:@"speed"] doubleValue] result:result];
-        }else if ([@"setTrackParameters" isEqualToString:call.method]) {
+        } else if ([@"setTrackParameters" isEqualToString:call.method]) {
             int width = [argsMap[@"width"] intValue];
             int height = [argsMap[@"height"] intValue];
             int bitrate = [argsMap[@"bitrate"] intValue];
 
             [player setTrackParameters:width: height : bitrate];
             result(nil);
+        } else if ([@"setBeforePipSourceRectHint" isEqualToString:call.method]) {
+            double left = [argsMap[@"left"] doubleValue];
+            double top = [argsMap[@"top"] doubleValue];
+            double width = [argsMap[@"width"] doubleValue];
+            double height = [argsMap[@"height"] doubleValue];
+            [player setBeforePipSourceRectHint:CGRectMake(left, top, width, height)];
+            result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
             double left = [argsMap[@"left"] doubleValue];
             double top = [argsMap[@"top"] doubleValue];
             double width = [argsMap[@"width"] doubleValue];
             double height = [argsMap[@"height"] doubleValue];
-            [player enablePictureInPicture:CGRectMake(left, top, width, height)];
-            // move to background after 1 second to make sure PIP is started
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-                UIApplication *app = [UIApplication sharedApplication];
-                [app performSelector:@selector(suspend)];
-            });
+            [player gotoBackgroundWithPIP:CGRectMake(left, top, width, height)];
             result(nil);
-        } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]){
-            if (@available(iOS 9.0, *)){
-                if ([AVPictureInPictureController isPictureInPictureSupported]){
-                    result([NSNumber numberWithBool:true]);
-                    return;
-                }
-            }
-
-            result([NSNumber numberWithBool:false]);
         } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
-            [player disablePictureInPicture];
             [player setPictureInPicture:false];
-        } else if ([@"setAutomaticPipMode" isEqualToString:call.method]) {
-            [player willStartPictureInPicture:[argsMap[@"autoPip"] boolValue]];
-            result(nil);
         } else if ([@"setAudioTrack" isEqualToString:call.method]){
             NSString* name = argsMap[@"name"];
             int index = [argsMap[@"index"] intValue];
@@ -438,14 +423,14 @@ bool _remoteCommandsInitialized = false;
             NSDictionary* headers = dataSource[@"headers"];
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
-            
+
             if (headers == [ NSNull null ]){
                 headers = @{};
             }
             if (videoExtension == [NSNull null]){
                 videoExtension = nil;
             }
-            
+
             if (urlArg != [NSNull null]){
                 NSURL* url = [NSURL URLWithString:urlArg];
                 if ([_cacheManager isPreCacheSupportedWithUrl:url videoExtension:videoExtension]){
@@ -469,7 +454,7 @@ bool _remoteCommandsInitialized = false;
                 if ([_cacheManager isPreCacheSupportedWithUrl:url videoExtension:videoExtension]){
                     [_cacheManager stopPreCache:url cacheKey:cacheKey
                               completionHandler:^(BOOL success){
-                    }];
+                              }];
                 } else {
                     NSLog(@"Stop pre cache is not supported for given data source.");
                 }

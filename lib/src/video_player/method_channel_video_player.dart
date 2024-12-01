@@ -224,6 +224,20 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> setBeforePipSourceRectHint(int? textureId, double? top, double? left, double? width, double? height) async {
+    return _channel.invokeMethod<void>(
+      'setBeforePipSourceRectHint',
+      <String, dynamic>{
+        'textureId': textureId,
+        'top': top,
+        'left': left,
+        'width': width,
+        'height': height,
+      },
+    );
+  }
+
+  @override
   Future<void> enablePictureInPicture(int? textureId, double? top, double? left,
       double? width, double? height) async {
     return _channel.invokeMethod<void>(
@@ -272,22 +286,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       'openPictureInPicturePermissionSettings',
       <String, dynamic>{'textureId': textureId},
     );
-  }
-
-  @override
-  Future<void> setAutomaticPipMode({
-    int? textureId,
-    bool? autoPip,
-  }) async {
-    if (Platform.isIOS) {
-      return _channel.invokeMethod<void>(
-        'setAutomaticPipMode',
-        <String, dynamic>{
-          'textureId': textureId,
-          'autoPip': autoPip,
-        },
-      );
-    }
   }
 
   @override

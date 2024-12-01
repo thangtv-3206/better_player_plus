@@ -25,7 +25,7 @@ class Constants {
   static const String phantomVideoUrl =
       "http://sample.vodobox.com/skate_phantom_flex_4k/skate_phantom_flex_4k.m3u8";
   static const String elephantDreamVideoUrl =
-      "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
   static const String forBiggerJoyridesVideoUrl =
       "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
   static const String verticalVideoUrl =
@@ -34,7 +34,7 @@ class Constants {
   static String placeholderUrl =
       "https://imgix.bustle.com/uploads/image/2020/8/5/23905b9c-6b8c-47fa-bc0f-434de1d7e9bf-avengers-5.jpg";
   static String elephantDreamStreamUrl =
-      "http://cdn.theoplayer.com/video/elephants-dream/playlist.m3u8";
+      "https://cdn.theoplayer.com/video/elephants-dream/playlist.m3u8";
   static String tokenEncodedHlsUrl =
       "https://amssamples.streaming.mediaservices.windows.net/830584f8-f0c8-4e41-968b-6538b9380aa5/TearsOfSteelTeaser.ism/manifest(format=m3u8-aapl)";
   static String tokenEncodedHlsToken =

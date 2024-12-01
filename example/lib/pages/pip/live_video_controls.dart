@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:better_player_example/pages/pip/animated_play_pause.dart';
 import 'package:better_player_example/size_config.dart';
@@ -37,6 +38,7 @@ class _LiveVideoControlsState
   bool _wasLoading = false;
   VideoPlayerController? _controller;
   BetterPlayerController? _betterPlayerController;
+  Future<bool>? isPictureInPictureSupportedFuture;
   StreamSubscription<bool>? _controlsVisibilityStreamSubscription;
 
   BetterPlayerControlsConfiguration get _controlsConfiguration =>
@@ -229,14 +231,23 @@ class _LiveVideoControlsState
 
   Widget _buildPipButton() {
     return Visibility(
-      visible: !(_controller?.value.hasError ?? false) &&
-          !(_controller?.value.isBuffering ?? false),
+      visible: !(_controller?.value.hasError ?? false),
       child: _buildMaterialClickableWidget(
-        onTap: () {
-          changePlayerControlsNotVisible(true);
-          _betterPlayerController!.play();
-          betterPlayerController!.enablePictureInPicture(
-              betterPlayerController!.betterPlayerGlobalKey!);
+        onTap: () async {
+          if (betterPlayerController!.isPipMode() ?? false) return;
+          final hasPipPermission = Platform.isIOS ||
+              (Platform.isAndroid &&
+                  await betterPlayerController!.hasPipPermission());
+          if (hasPipPermission) {
+            changePlayerControlsNotVisible(true);
+            _betterPlayerController!.play();
+            betterPlayerController!.enablePictureInPicture(
+                betterPlayerController!.betterPlayerGlobalKey!);
+          } else {
+            if (Platform.isAndroid) {
+              await betterPlayerController!.openPipPermissionSettings();
+            }
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(10.0),
@@ -252,7 +263,7 @@ class _LiveVideoControlsState
   Widget _buildPipButtonWrapperWidget(
       bool hideStuff, void Function() onPlayerHide) {
     return FutureBuilder<bool>(
-      future: betterPlayerController!.isPictureInPictureSupported(),
+      future: isPictureInPictureSupportedFuture,
       builder: (context, snapshot) {
         final bool isPipSupported = snapshot.data ?? false;
         if (isPipSupported &&
@@ -491,6 +502,8 @@ class _LiveVideoControlsState
   }
 
   Future<void> _initialize() async {
+    isPictureInPictureSupportedFuture =
+        betterPlayerController!.isPictureInPictureSupported();
     _controller!.addListener(_updateState);
 
     _updateState();

@@ -258,7 +258,7 @@ class BetterPlayerController {
     }
 
     if (_isDataSourceAsms(betterPlayerDataSource)) {
-      _setupAsmsDataSource(betterPlayerDataSource).then((dynamic value) {
+      _setupAsmsDataSource().then((dynamic value) {
         _setupSubtitles();
       });
     } else {
@@ -268,6 +268,38 @@ class BetterPlayerController {
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
     setTrack(BetterPlayerAsmsTrack.defaultTrack());
+  }
+
+  void setupFromOtherController(BetterPlayerController otherBetterPlayerController) {
+    final betterPlayerDataSource = otherBetterPlayerController.betterPlayerDataSource;
+    if (betterPlayerDataSource == null) return;
+
+    postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource, parameters: <String, dynamic>{
+      _dataSourceParameter: betterPlayerDataSource,
+    }));
+    _postControllerEvent(BetterPlayerControllerEvent.setupDataSource);
+    _betterPlayerDataSource = betterPlayerDataSource;
+    _hasCurrentDataSourceStarted = otherBetterPlayerController.hasCurrentDataSourceStarted;
+    _hasCurrentDataSourceInitialized = otherBetterPlayerController._hasCurrentDataSourceInitialized;
+    _betterPlayerAsmsTracks = otherBetterPlayerController.betterPlayerAsmsTracks;
+    _betterPlayerAsmsTrack = otherBetterPlayerController.betterPlayerAsmsTrack;
+    _betterPlayerSubtitlesSourceList.clear();
+    _betterPlayerSubtitlesSourceList.addAll(otherBetterPlayerController.betterPlayerSubtitlesSourceList);
+    _betterPlayerAsmsAudioTracks = otherBetterPlayerController.betterPlayerAsmsAudioTracks;
+    _betterPlayerAsmsAudioTrack = otherBetterPlayerController.betterPlayerAsmsAudioTrack;
+
+    videoPlayerController = otherBetterPlayerController.videoPlayerController;
+    otherBetterPlayerController.detachVideoPlayerController();
+    otherBetterPlayerController.dispose(forceDispose: true);
+    videoPlayerController?.addListener(_onVideoPlayerChanged);
+
+    _setupSubtitles();
+    setupSubtitleSource(_betterPlayerSubtitlesSourceList.last, sourceInitialize: true);
+
+    _videoEventStreamSubscription?.cancel();
+    _videoEventStreamSubscription = null;
+
+    _videoEventStreamSubscription = videoPlayerController?.videoEventStreamController.stream.listen(_handleVideoEvent);
   }
 
   ///Configure subtitles based on subtitles source.
@@ -294,7 +326,7 @@ class BetterPlayerController {
   ///Configure HLS / DASH data source based on provided data source and configuration.
   ///This method configures tracks, subtitles and audio tracks from given
   ///master playlist.
-  Future _setupAsmsDataSource(BetterPlayerDataSource source) async {
+  Future _setupAsmsDataSource() async {
     final String? data = await BetterPlayerAsmsUtils.getDataFromUrl(
       betterPlayerDataSource!.url,
       _getHeaders(),
@@ -610,7 +642,8 @@ class BetterPlayerController {
       throw StateError("The data source has not been initialized");
     }
 
-    if (_appLifecycleState == AppLifecycleState.resumed || isPipMode() == true) {
+    if (_appLifecycleState == AppLifecycleState.resumed ||
+        isPipMode() == true) {
       await videoPlayerController!.play();
       _hasCurrentDataSourceStarted = true;
       _wasPlayingBeforePause = null;
@@ -1054,6 +1087,24 @@ class BetterPlayerController {
     return _overriddenFit ?? betterPlayerConfiguration.fit;
   }
 
+  Future<void>? setBeforePipSourceRectHint(GlobalKey betterPlayerGlobalKey) async {
+    final playerContext = betterPlayerGlobalKey.currentContext;
+    final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
+      BetterPlayerUtils.log("RenderBox is null. Did you provide valid global"
+          " key?");
+      return;
+    }
+    final Offset position = renderBox.localToGlobal(Offset.zero);
+
+    await videoPlayerController?.setBeforePipSourceRectHint(
+      left: position.dx,
+      top: position.dy,
+      width: renderBox.size.width,
+      height: renderBox.size.height,
+    );
+  }
+
   ///Enable Picture in Picture (PiP) mode. [betterPlayerGlobalKey] is required
   ///to open PiP mode in iOS. When device is not supported, PiP mode won't be
   ///open.
@@ -1062,47 +1113,36 @@ class BetterPlayerController {
       throw StateError("The data source has not been initialized");
     }
 
-    final bool isPipSupported =
-        (await videoPlayerController!.isPictureInPictureSupported()) ?? false;
-
-    if (isPipSupported) {
-      final playerContext = betterPlayerGlobalKey.currentContext!;
-      final RenderBox? renderBox =
-          playerContext.findRenderObject() as RenderBox?;
-      if (renderBox == null) {
-        BetterPlayerUtils.log(
-            "Can't show PiP. RenderBox is null. Did you provide valid global"
-            " key?");
-        return;
-      }
-      final Offset position = renderBox.localToGlobal(Offset.zero);
-
-      if (Platform.isAndroid) {
-        await videoPlayerController?.enablePictureInPicture(
-          left: position.dx,
-          top: position.dy,
-          width: renderBox.size.width,
-          height: renderBox.size.height,
-        );
-        return;
-      }
-      if (Platform.isIOS) {
-        await videoPlayerController?.enablePictureInPicture(
-          left: position.dx,
-          top: position.dy,
-          width: renderBox.size.width,
-          height: renderBox.size.height,
-        );
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
-        return;
-      } else {
-        BetterPlayerUtils.log("Unsupported PiP in current platform.");
-      }
-    } else {
+    final playerContext = betterPlayerGlobalKey.currentContext;
+    final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
       BetterPlayerUtils.log(
-          "Picture in picture is not supported in this device. If you're "
-          "using Android, please check if you're using activity v2 "
-          "embedding.");
+          "Can't show PiP. RenderBox is null. Did you provide valid global"
+          " key?");
+      return;
+    }
+    final Offset position = renderBox.localToGlobal(Offset.zero);
+
+    if (Platform.isAndroid) {
+      await videoPlayerController?.enablePictureInPicture(
+        left: position.dx,
+        top: position.dy,
+        width: renderBox.size.width,
+        height: renderBox.size.height,
+      );
+      return;
+    }
+    if (Platform.isIOS) {
+      await videoPlayerController?.enablePictureInPicture(
+        left: position.dx,
+        top: position.dy,
+        width: renderBox.size.width,
+        height: renderBox.size.height,
+      );
+      _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
+      return;
+    } else {
+      BetterPlayerUtils.log("Unsupported PiP in current platform.");
     }
   }
 
@@ -1147,27 +1187,6 @@ class BetterPlayerController {
       throw StateError("The data source has not been initialized");
     }
     await videoPlayerController!.openPipPermissionSettings();
-  }
-
-  ///Set up to start Picture in Picture automatically when hide app.
-  ///When device is not supported, PiP mode won't be open.
-  Future<void>? setAutomaticPipMode({required bool autoPip}) async {
-    if (Platform.isIOS) {
-      if (videoPlayerController == null) {
-        throw StateError("The data source has not been initialized");
-      }
-      final bool isPipSupported =
-          (await videoPlayerController?.isPictureInPictureSupported()) ?? false;
-      if (isPipSupported) {
-        await videoPlayerController?.setAutomaticPipMode(
-          autoPip: autoPip,
-        );
-      } else {
-        BetterPlayerUtils.log("Picture in picture is not supported in this device. If you're "
-            "using Android, please check if you're using activity v2 "
-            "embedding.");
-      }
-    }
   }
 
   ///Handle VideoEvent when remote controls notification / PiP is shown
@@ -1326,6 +1345,14 @@ class BetterPlayerController {
   void _postControllerEvent(BetterPlayerControllerEvent event) {
     if (!_controllerEventStreamController.isClosed) {
       _controllerEventStreamController.add(event);
+    }
+  }
+
+  void detachVideoPlayerController() {
+    if (videoPlayerController != null) {
+      videoPlayerController?.removeListener(_onFullScreenStateChanged);
+      videoPlayerController?.removeListener(_onVideoPlayerChanged);
+      videoPlayerController = null;
     }
   }
 

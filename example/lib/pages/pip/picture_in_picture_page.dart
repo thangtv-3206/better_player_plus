@@ -18,8 +18,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
     with WidgetsBindingObserver {
   late BetterPlayerController _betterPlayerController;
   GlobalKey _betterPlayerKey = GlobalKey();
-  late bool _shouldStartPIP = false;
-  late bool _isPiPMode = false;
   late ScrollController _scrollController;
 
   @override
@@ -109,39 +107,17 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
   }
 
   void eventListener(BetterPlayerEvent event) {
-    debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
-    switch (event.betterPlayerEventType) {
-      case BetterPlayerEventType.play:
-        if (Platform.isIOS && !_isPiPMode) {
-          _betterPlayerController.setAutomaticPipMode(autoPip: true);
-          setState(() {
-            _shouldStartPIP = true;
-          });
-        }
-        break;
-      case BetterPlayerEventType.pause:
-        if (Platform.isIOS && !_isPiPMode) {
-          _betterPlayerController.setAutomaticPipMode(autoPip: false);
-          setState(() {
-            _shouldStartPIP = false;
-          });
-        }
-      case BetterPlayerEventType.enteringPip:
-        setState(() {
-          _isPiPMode = true;
-        });
-      case BetterPlayerEventType.restorePip:
-        setState(() {
-          _isPiPMode = false;
-        });
-      case BetterPlayerEventType.closePip:
-        if (Platform.isIOS) {
-          _betterPlayerController.pause();
-        }
-        setState(() {
-          _isPiPMode = false;
-        });
-      default:
+    if (event.betterPlayerEventType != BetterPlayerEventType.progress &&
+        event.betterPlayerEventType != BetterPlayerEventType.bufferingUpdate &&
+        event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenStart &&
+        event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenEnd &&
+        event.betterPlayerEventType != BetterPlayerEventType.controlsVisible &&
+        event.betterPlayerEventType != BetterPlayerEventType.bufferingEnd) {
+      debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
+    }
+
+    if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
+      _betterPlayerController.setBeforePipSourceRectHint(_betterPlayerKey);
     }
   }
 
@@ -165,8 +141,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
                 final isShowing = info.visibleFraction > 0;
                 if (isShowing && PictureInPicture.isActive) {
                   PictureInPicture.stopPiP();
-                  _betterPlayerController.setAutomaticPipMode(
-                      autoPip: _betterPlayerController.isPlaying() ?? false);
                 }
               },
               child: AspectRatio(
@@ -195,14 +169,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
               child: Text("Disable PiP"),
               onPressed: () {
                 _betterPlayerController.disablePictureInPicture();
-              },
-            ),
-            ElevatedButton(
-              child: Text('Auto PIP: ' + (_shouldStartPIP ? 'ON' : 'OFF')),
-              onPressed: () {
-                setState(() {
-                  _betterPlayerController.setAutomaticPipMode(autoPip: _shouldStartPIP);
-                });
               },
             ),
             Container(height: 500, color: Colors.amber),

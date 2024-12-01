@@ -17,13 +17,13 @@ import android.util.ArrayMap
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
-import androidx.media3.common.util.UnstableApi
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -54,6 +54,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.UserLeaveHintListener, OnGlobalLayoutListener {
     private var isInPip = false
     private val PIP_CONTAINER = "PIP_CONTAINER"
+    private val PADDING_TOP_KEY = 2131364639
     private val videoPlayers = ArrayMap<Long, BetterPlayer>()
     private val dataSources = LongSparseArray<Map<String, Any?>>()
     private var flutterState: FlutterState? = null
@@ -62,7 +63,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var activity: Activity? = null
     private var beforePipSourceRectHint: Rect? = null;
-    private var inPipSourceRectHint: Rect? = null;
 
     private val pipContainer: ViewGroup?
         get() = activity?.window?.decorView?.findViewWithTag<ViewGroup>(
@@ -138,8 +138,8 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 val currentBetterPlayer = videoPlayers.values.lastOrNull()
                 if (currentBetterPlayer != null) {
                     val textureId = currentBetterPlayer.textureEntry.id();
+                    currentBetterPlayer.exoPlayer.clearVideoSurface()
                     if (isInPip) {
-                        currentBetterPlayer.exoPlayer.clearVideoSurface()
                         pipContainer.findViewWithTag<PlayerView>(textureId)?.player =
                             currentBetterPlayer.exoPlayer
                         currentBetterPlayer.onPictureInPictureStatusChanged(true)
@@ -148,17 +148,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
                         currentBetterPlayer.onPictureInPictureStatusChanged(false)
                         currentBetterPlayer.disposeMediaSession()
-                        updatePictureInPictureParams();
                     }
-                }
-            }
-
-            if (isInPip) {
-                val rect = Rect()
-                pipContainer.getGlobalVisibleRect(rect)
-                if (!rect.isEmpty) {
-                    inPipSourceRectHint = rect
-                    updatePictureInPictureParams();
                 }
             }
         }
@@ -224,6 +214,13 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             PRE_CACHE_METHOD -> preCache(call, result)
             STOP_PRE_CACHE_METHOD -> stopPreCache(call, result)
             CLEAR_CACHE_METHOD -> clearCache(result)
+            IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD -> result.success(
+                isPictureInPictureSupported()
+            )
+            SET_BEFORE_PIP_SOURCE_RECT_HINT -> {
+                setBeforePipSourceRectHint(call)
+                result.success(null)
+            }
             else -> {
                 if (call.argument<Any>(TEXTURE_ID_PARAMETER) == null) {
                     return
@@ -302,13 +299,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             }
 
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
-                val density = activity!!.resources.displayMetrics.density
-                val left = (call.argument<Double>(LEFT_PARAMETER)!! * density).toInt()
-                val top = (call.argument<Double>(TOP_PARAMETER)!! * density).toInt()
-                val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
-                val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
-                beforePipSourceRectHint = Rect(left, top, left + width, top + height)
-
+                setBeforePipSourceRectHint(call)
                 enablePictureInPicture(player)
                 result.success(null)
             }
@@ -317,10 +308,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 disablePictureInPicture(player)
                 result.success(null)
             }
-
-            IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD -> result.success(
-                isPictureInPictureSupported()
-            )
 
             HAS_PICTURE_IN_PICTURE_PERMISSION_METHOD -> result.success(
                 hasPipPermission(flutterState!!.applicationContext)
@@ -546,8 +533,18 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             .hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     }
 
+    private fun setBeforePipSourceRectHint(call: MethodCall) {
+        val density = activity!!.resources.displayMetrics.density
+        val left = (call.argument<Double>(LEFT_PARAMETER)!! * density).toInt()
+        val top = (call.argument<Double>(TOP_PARAMETER)!! * density).toInt()
+        val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
+        val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
+        beforePipSourceRectHint = Rect(left, top, left + width, top + height)
+        pipContainer?.setTag(PADDING_TOP_KEY, top);
+    }
+
     private fun enablePictureInPicture(player: BetterPlayer) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (isPictureInPictureSupported()) {
             activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(16, 9))
                 .apply {
@@ -557,24 +554,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 }
                 .build())
         }
-    }
-
-    private fun updatePictureInPictureParams() {
-        activity?.setPictureInPictureParams(PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(16, 9))
-            .apply {
-                if (isInPip) {
-                    inPipSourceRectHint?.let {
-                        setSourceRectHint(it)
-                    }
-                } else {
-                    beforePipSourceRectHint?.let {
-                        setSourceRectHint(it)
-                    }
-                }
-            }
-            .build()
-        )
     }
 
     private fun disablePictureInPicture(player: BetterPlayer) {
@@ -720,6 +699,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         private const val SET_SPEED_METHOD = "setSpeed"
         private const val SET_TRACK_PARAMETERS_METHOD = "setTrackParameters"
         private const val SET_AUDIO_TRACK_METHOD = "setAudioTrack"
+        private const val SET_BEFORE_PIP_SOURCE_RECT_HINT = "setBeforePipSourceRectHint"
         private const val ENABLE_PICTURE_IN_PICTURE_METHOD = "enablePictureInPicture"
         private const val DISABLE_PICTURE_IN_PICTURE_METHOD = "disablePictureInPicture"
         private const val IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD = "isPictureInPictureSupported"

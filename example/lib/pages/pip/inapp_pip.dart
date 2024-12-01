@@ -19,22 +19,15 @@ class InAppPip extends StatefulWidget {
 }
 
 class _InAppPipState extends State<InAppPip> {
-  @override
-  void initState() {
-    if (Platform.isIOS) {
-      widget.betterPlayerController.setAutomaticPipMode(autoPip: true);
-    }
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Material(
+      color: Colors.transparent,
       child: Stack(
         children: [
-          SizedBox(
-            width: 192,
-            height: 108,
+          AspectRatio(
+            aspectRatio: 16 / 9,
             child: VideoPlayer(widget.betterPlayerController.videoPlayerController),
           ),
           ColoredBox(
