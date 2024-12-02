@@ -630,10 +630,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
             [[AVAudioSession sharedInstance] setActive:YES error:nil];
             [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
-            if (self._playerLayer) {
-                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
-                _pipController.delegate = self;
-            }
+            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
+            _pipController.delegate = self;
         }
     }
 }
