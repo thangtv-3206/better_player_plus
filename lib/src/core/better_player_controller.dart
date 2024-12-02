@@ -14,7 +14,7 @@ import 'package:path_provider/path_provider.dart';
 
 ///Class used to control overall Better Player behavior. Main class to change
 ///state of Better Player.
-class BetterPlayerController {
+class BetterPlayerController with WidgetsBindingObserver {
   static const String _durationParameter = "duration";
   static const String _progressParameter = "progress";
   static const String _bufferedParameter = "buffered";
@@ -216,6 +216,7 @@ class BetterPlayerController {
     if (betterPlayerDataSource != null) {
       setupDataSource(betterPlayerDataSource);
     }
+    WidgetsBinding.instance.addObserver(this);
   }
 
   ///Get BetterPlayerController from context. Used in InheritedWidget.
@@ -224,6 +225,12 @@ class BetterPlayerController {
         .dependOnInheritedWidgetOfExactType<BetterPlayerControllerProvider>()!;
 
     return betterPLayerControllerProvider.controller;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    setAppLifecycleState(state);
   }
 
   ///Setup new data source in Better Player.
@@ -1059,6 +1066,12 @@ class BetterPlayerController {
         }
       }
     }
+
+    if (Platform.isIOS) {
+      if (appLifecycleState == AppLifecycleState.resumed && (isPipMode() ?? false)) {
+        disablePictureInPicture();
+      }
+    }
   }
 
   // ignore: use_setters_to_change_properties
@@ -1116,33 +1129,21 @@ class BetterPlayerController {
     final playerContext = betterPlayerGlobalKey.currentContext;
     final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
-      BetterPlayerUtils.log(
-          "Can't show PiP. RenderBox is null. Did you provide valid global"
+      BetterPlayerUtils.log("Can't show PiP. RenderBox is null. Did you provide valid global"
           " key?");
       return;
     }
     final Offset position = renderBox.localToGlobal(Offset.zero);
 
-    if (Platform.isAndroid) {
-      await videoPlayerController?.enablePictureInPicture(
-        left: position.dx,
-        top: position.dy,
-        width: renderBox.size.width,
-        height: renderBox.size.height,
-      );
-      return;
-    }
+    await videoPlayerController?.enablePictureInPicture(
+      left: position.dx,
+      top: position.dy,
+      width: renderBox.size.width,
+      height: renderBox.size.height,
+    );
+
     if (Platform.isIOS) {
-      await videoPlayerController?.enablePictureInPicture(
-        left: position.dx,
-        top: position.dy,
-        width: renderBox.size.width,
-        height: renderBox.size.height,
-      );
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
-      return;
-    } else {
-      BetterPlayerUtils.log("Unsupported PiP in current platform.");
     }
   }
 
@@ -1364,6 +1365,7 @@ class BetterPlayerController {
       return;
     }
     if (!_disposed) {
+      WidgetsBinding.instance.removeObserver(this);
       if (videoPlayerController != null) {
         pause();
         videoPlayerController!.removeListener(_onFullScreenStateChanged);

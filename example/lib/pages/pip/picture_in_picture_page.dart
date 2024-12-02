@@ -98,11 +98,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && Platform.isIOS) {
-      if (_betterPlayerController.isPipMode() ?? false) {
-        _betterPlayerController.disablePictureInPicture();
-      }
-    }
     super.didChangeAppLifecycleState(state);
   }
 
@@ -163,12 +158,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
                     _betterPlayerController.openPipPermissionSettings();
                   }
                 }
-              },
-            ),
-            ElevatedButton(
-              child: Text("Disable PiP"),
-              onPressed: () {
-                _betterPlayerController.disablePictureInPicture();
               },
             ),
             Container(height: 500, color: Colors.amber),

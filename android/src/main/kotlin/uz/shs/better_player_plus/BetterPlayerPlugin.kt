@@ -63,11 +63,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var activity: Activity? = null
     private var beforePipSourceRectHint: Rect? = null;
-
-    private val pipContainer: ViewGroup?
-        get() = activity?.window?.decorView?.findViewWithTag<ViewGroup>(
-            PIP_CONTAINER
-        )
+    private var pipContainer: ViewGroup? = null
 
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         val loader = FlutterLoader()
@@ -108,6 +104,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         activity = activityPluginBinding.activity
         activityPluginBinding.addOnUserLeaveHintListener(this)
         activity!!.window.decorView.doOnLayout {
+            pipContainer = activity?.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
             pipContainer?.viewTreeObserver?.addOnGlobalLayoutListener(this)
         }
     }
@@ -140,11 +137,16 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     val textureId = currentBetterPlayer.textureEntry.id();
                     currentBetterPlayer.exoPlayer.clearVideoSurface()
                     if (isInPip) {
-                        pipContainer.findViewWithTag<PlayerView>(textureId)?.player =
-                            currentBetterPlayer.exoPlayer
+                        pipContainer.findViewWithTag<PlayerView>(textureId)?.let {
+                            it.player = currentBetterPlayer.exoPlayer
+                            it.isVisible = true
+                        }
                         currentBetterPlayer.onPictureInPictureStatusChanged(true)
                     } else {
-                        pipContainer.findViewWithTag<PlayerView>(textureId)?.player = null
+                        pipContainer.findViewWithTag<PlayerView>(textureId)?.let {
+                            it.player = null
+                            it.isVisible = false
+                        }
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
                         currentBetterPlayer.onPictureInPictureStatusChanged(false)
                         currentBetterPlayer.disposeMediaSession()
@@ -217,10 +219,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD -> result.success(
                 isPictureInPictureSupported()
             )
+
             SET_BEFORE_PIP_SOURCE_RECT_HINT -> {
                 setBeforePipSourceRectHint(call)
                 result.success(null)
             }
+
             else -> {
                 if (call.argument<Any>(TEXTURE_ID_PARAMETER) == null) {
                     return

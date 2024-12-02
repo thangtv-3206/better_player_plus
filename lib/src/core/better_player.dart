@@ -45,8 +45,7 @@ class BetterPlayer extends StatefulWidget {
   }
 }
 
-class _BetterPlayerState extends State<BetterPlayer>
-    with WidgetsBindingObserver {
+class _BetterPlayerState extends State<BetterPlayer> {
   BetterPlayerConfiguration get _betterPlayerConfiguration =>
       widget.controller.betterPlayerConfiguration;
 
@@ -68,7 +67,6 @@ class _BetterPlayerState extends State<BetterPlayer>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _deviceOrientationSubscription =
         deviceOrientationStream.skip(1).listen((deviceOrientation) {
       var controller = widget.controller;
@@ -134,7 +132,6 @@ class _BetterPlayerState extends State<BetterPlayer>
           _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
     }
 
-    WidgetsBinding.instance.removeObserver(this);
     _controllerEventSubscription?.cancel();
     widget.controller.dispose();
     VisibilityDetectorController.instance
@@ -257,12 +254,6 @@ class _BetterPlayerState extends State<BetterPlayer>
         controller: widget.controller,
       ),
     );
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    widget.controller.setAppLifecycleState(state);
   }
 }
 
