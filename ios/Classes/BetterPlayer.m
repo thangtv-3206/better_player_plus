@@ -594,9 +594,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)setBeforePipSourceRectHint:(CGRect)frame {
-    _beforePipSourceRectHint = frame;
-    _pipController = NULL;
-    [self setupPipController];
+    if (CGRectEqualToRect(_beforePipSourceRectHint, CGRectZero)) {
+        _beforePipSourceRectHint = frame;
+    } else if (_beforePipSourceRectHint.size.width != frame.size.width) {
+        _beforePipSourceRectHint = frame;
+        // FIXME: should updatePIPController? not re-setup
+        _pipController = NULL;
+        [self setupPipController];
+    }
 }
 
 - (void)setPictureInPicture:(BOOL)pictureInPicture {
