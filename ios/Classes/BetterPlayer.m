@@ -598,9 +598,20 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         _beforePipSourceRectHint = frame;
     } else if (_beforePipSourceRectHint.size.width != frame.size.width) {
         _beforePipSourceRectHint = frame;
-        // FIXME: should updatePIPController? not re-setup
-        _pipController = NULL;
-        [self setupPipController];
+        if (!_pipController) {
+            [self setupPipController];
+        } else {
+            UIViewController *vc = [[[UIApplication sharedApplication] keyWindow] rootViewController];
+            if (_beforePipSourceRectHint.size.width == vc.view.frame.size.width) {
+                // this means current playerLayer is origin video player
+                _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:self._playerLayer];
+            } else {
+                // this means current playerLayer is in app PIP player
+                _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:self._betterPlayerView.playerLayer];
+                _pipController.canStartPictureInPictureAutomaticallyFromInline = true;
+            }
+            _pipController.delegate = self;
+        }
     }
 }
 
@@ -635,16 +646,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
             [[AVAudioSession sharedInstance] setActive: YES error: nil];
             [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
-            
-            // FIXME: How to know exactly the video playerLayer is displaying?
-            if (_beforePipSourceRectHint.size.width == vc.view.frame.size.width) {
-                // this means current playerLayer is origin video player
-                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
-            } else {
-                // this means current playerLayer is in app PIP player
-                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._betterPlayerView.playerLayer];
-                _pipController.canStartPictureInPictureAutomaticallyFromInline = true;
-            }
+            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
             _pipController.delegate = self;
         }
     }
