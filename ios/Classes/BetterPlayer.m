@@ -38,6 +38,7 @@ CGRect _beforePipSourceRectHint;
 - (nonnull UIView *)view {
     BetterPlayerView *playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
     playerView.player = _player;
+    self._betterPlayerView = playerView;
     return playerView;
 }
 
@@ -594,9 +595,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)setBeforePipSourceRectHint:(CGRect)frame {
     _beforePipSourceRectHint = frame;
-    if (self._playerLayer) {
-        self._playerLayer.frame = frame;
-    }
+    _pipController = NULL;
+    [self setupPipController];
 }
 
 - (void)setPictureInPicture:(BOOL)pictureInPicture {
@@ -628,9 +628,18 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             [vc.view.layer addSublayer:self._playerLayer];
             vc.view.layer.needsDisplayOnBoundsChange = YES;
 
-            [[AVAudioSession sharedInstance] setActive:YES error:nil];
+            [[AVAudioSession sharedInstance] setActive: YES error: nil];
             [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
-            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
+            
+            // FIXME: How to know exactly the video playerLayer is displaying?
+            if (_beforePipSourceRectHint.size.width == vc.view.frame.size.width) {
+                // this means current playerLayer is origin video player
+                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
+            } else {
+                // this means current playerLayer is in app PIP player
+                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._betterPlayerView.playerLayer];
+                _pipController.canStartPictureInPictureAutomaticallyFromInline = true;
+            }
             _pipController.delegate = self;
         }
     }

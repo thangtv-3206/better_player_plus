@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:better_player_plus/better_player_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_in_app_pip/picture_in_picture.dart';
@@ -19,6 +17,19 @@ class InAppPip extends StatefulWidget {
 }
 
 class _InAppPipState extends State<InAppPip> {
+  final key = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.betterPlayerController.setBetterPlayerGlobalKey(key);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // delay a bit to make sure pip is rendered
+      Future.delayed(const Duration(milliseconds: 250), () {
+        widget.betterPlayerController.setBeforePipSourceRectHint(key);
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +39,7 @@ class _InAppPipState extends State<InAppPip> {
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: VideoPlayer(widget.betterPlayerController.videoPlayerController),
+            child: VideoPlayer(key: key, widget.betterPlayerController.videoPlayerController),
           ),
           ColoredBox(
             color: Colors.transparent,

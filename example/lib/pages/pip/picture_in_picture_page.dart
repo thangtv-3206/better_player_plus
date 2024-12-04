@@ -64,12 +64,19 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
 
         if (isPlaying && !isShowing && !PictureInPicture.isActive && !isPipMode && !isFullScreen) {
           PictureInPicture.startPiP(
-            pipWidget: Builder(builder: (context) {
-              return InAppPip(
-                betterPlayerController: _betterPlayerController,
-                onTap: () => _scrollController.jumpTo(0),
-              );
-            }),
+            pipWidget: PiPWidget(
+              onPiPClose: () {
+                _betterPlayerController.setBeforePipSourceRectHint(_betterPlayerKey);
+              },
+              child: Builder(
+                builder: (context) {
+                  return InAppPip(
+                    betterPlayerController: _betterPlayerController,
+                    onTap: () => _scrollController.jumpTo(0),
+                  );
+                },
+              ),
+            ),
           );
         }
       },
