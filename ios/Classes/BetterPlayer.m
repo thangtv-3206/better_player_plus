@@ -8,8 +8,6 @@
 static void* timeRangeContext = &timeRangeContext;
 static void* statusContext = &statusContext;
 static void* playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
-static void* playbackBufferEmptyContext = &playbackBufferEmptyContext;
-static void* playbackBufferFullContext = &playbackBufferFullContext;
 static void* presentationSizeContext = &presentationSizeContext;
 
 void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
@@ -51,14 +49,6 @@ CGRect _beforePipSourceRectHint;
                forKeyPath:@"playbackLikelyToKeepUp"
                   options:0
                   context:playbackLikelyToKeepUpContext];
-        [item addObserver:self
-               forKeyPath:@"playbackBufferEmpty"
-                  options:0
-                  context:playbackBufferEmptyContext];
-        [item addObserver:self
-               forKeyPath:@"playbackBufferFull"
-                  options:0
-                  context:playbackBufferFullContext];
         [[NSNotificationCenter defaultCenter] addObserver:self
                                                  selector:@selector(itemDidPlayToEndTime:)
                                                      name:AVPlayerItemDidPlayToEndTimeNotification
@@ -97,12 +87,6 @@ CGRect _beforePipSourceRectHint;
         [[_player currentItem] removeObserver:self
                                    forKeyPath:@"playbackLikelyToKeepUp"
                                       context:playbackLikelyToKeepUpContext];
-        [[_player currentItem] removeObserver:self
-                                   forKeyPath:@"playbackBufferEmpty"
-                                      context:playbackBufferEmptyContext];
-        [[_player currentItem] removeObserver:self
-                                   forKeyPath:@"playbackBufferFull"
-                                      context:playbackBufferFullContext];
         [[NSNotificationCenter defaultCenter] removeObserver:self];
         self._observersAdded = false;
     }
@@ -165,7 +149,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         fps = (int) ceil(nominalFrameRate);
     }
     videoComposition.frameDuration = CMTimeMake(1, fps);
-    
+
     return videoComposition;
 }
 
@@ -199,7 +183,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     if (headers == [NSNull null] || headers == NULL){
         headers = @{};
     }
-    
+
     AVPlayerItem* item;
     if (useCache){
         if (cacheKey == [NSNull null]){
@@ -208,7 +192,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (videoExtension == [NSNull null]){
             videoExtension = nil;
         }
-        
+
         item = [cacheManager getCachingPlayerItemForNormalPlayback:url cacheKey:cacheKey videoExtension: videoExtension headers:headers];
     } else {
         AVURLAsset* asset = [AVURLAsset URLAssetWithURL:url
@@ -317,29 +301,23 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                       ofObject:(id)object
                         change:(NSDictionary*)change
                        context:(void*)context {
-
     if ([path isEqualToString:@"rate"]) {
-        if (@available(iOS 10.0, *)) {
-            if (_lastAvPlayerTimeControlStatus == _player.timeControlStatus){
-                return;
-            }
-
+        BOOL shouldHandleStalled = YES;
+        if (_lastAvPlayerTimeControlStatus == _player.timeControlStatus) {
+            shouldHandleStalled = NO;
+        } else {
+            _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
             if (_player.timeControlStatus == AVPlayerTimeControlStatusPaused) {
-                _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
+                shouldHandleStalled = NO;
                 if (_pipController.pictureInPictureActive == true) {
-                    if (_eventSink != nil){
+                    if (_eventSink != nil) {
                         _eventSink(@{@"event": @"pause"});
                     }
                 }
                 [self willStartPictureInPicture:false];
-
-                return;
-            }
-
-            if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
-                _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
+            } else if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
                 if (_pipController.pictureInPictureActive == true) {
-                    if (_eventSink != nil){
+                    if (_eventSink != nil) {
                         _eventSink(@{@"event": @"play"});
                     }
                 }
@@ -347,12 +325,13 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             }
         }
 
-        if (_player.rate == 0 && //if player rate dropped to 0
-            CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, > , kCMTimeZero) && //if video was started
-        CMTIME_COMPARE_INLINE(
-                _player.currentItem.currentTime, < , _player.currentItem.duration) && //but not yet finished
-        _isPlaying) { //instance variable to handle overall state (changed to YES when user triggers playback)
-            [self handleStalled];
+        if (shouldHandleStalled) {
+            if (_player.rate == 0 && //if player rate dropped to 0
+                CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, > , kCMTimeZero) && //if video was started
+                CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, < , _player.currentItem.duration) && //but not yet finished
+                _isPlaying) { //instance variable to handle overall state (changed to YES when user triggers playback)
+                [self handleStalled];
+            }
         }
     }
 
@@ -374,12 +353,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             }
             _eventSink(@{@"event" : @"bufferingUpdate", @"values" : values, @"key" : _key});
         }
-    }
-    else if (context == presentationSizeContext){
+    } else if (context == presentationSizeContext) {
         [self onReadyToPlay];
-    }
-
-    else if (context == statusContext) {
+    } else if (context == statusContext) {
         AVPlayerItem* item = (AVPlayerItem*)object;
         switch (item.status) {
             case AVPlayerItemStatusFailed:
@@ -402,20 +378,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         }
     } else if (context == playbackLikelyToKeepUpContext) {
         if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
-            if (_pipController.pictureInPictureActive != true) {
-                [self updatePlayingState];
-            }
+            [self updatePlayingState];
             if (_eventSink != nil) {
                 _eventSink(@{@"event" : @"bufferingEnd", @"key" : _key});
             }
-        }
-    } else if (context == playbackBufferEmptyContext) {
-        if (_eventSink != nil) {
-            _eventSink(@{@"event" : @"bufferingStart", @"key" : _key});
-        }
-    } else if (context == playbackBufferFullContext) {
-        if (_eventSink != nil) {
-            _eventSink(@{@"event" : @"bufferingEnd", @"key" : _key});
+        } else {
+            if (_eventSink != nil) {
+                _eventSink(@{@"event" : @"bufferingStart", @"key" : _key});
+            }
         }
     }
 }
