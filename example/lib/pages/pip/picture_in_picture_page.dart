@@ -14,35 +14,22 @@ class PictureInPicturePage extends StatefulWidget {
   _PictureInPicturePageState createState() => _PictureInPicturePageState();
 }
 
-class _PictureInPicturePageState extends State<PictureInPicturePage>
-    with WidgetsBindingObserver {
+class _PictureInPicturePageState extends State<PictureInPicturePage> with WidgetsBindingObserver {
   late BetterPlayerController _betterPlayerController;
   GlobalKey _betterPlayerKey = GlobalKey();
-  late bool _shouldStartPIP = false;
-  late bool _isPiPMode = false;
   late ScrollController _scrollController;
 
   @override
   void initState() {
     _scrollController = ScrollController();
     WidgetsBinding.instance.addObserver(this);
-    PictureInPicture.updatePiPParams(
-      pipParams: const PiPParams(
-        pipWindowHeight: 108,
-        pipWindowWidth: 192,
-        bottomSpace: 64,
-      ),
-    );
     BetterPlayerConfiguration betterPlayerConfiguration = BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
       autoPlay: true,
       autoDispose: false,
       allowedScreenSleep: false,
-      deviceOrientationsAfterFullScreen: [
-        DeviceOrientation.portraitDown,
-        DeviceOrientation.portraitUp
-      ],
+      deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp],
       controlsConfiguration: BetterPlayerControlsConfiguration(
         showControlsOnInitialize: false,
         controlBarHeight: 24,
@@ -100,48 +87,16 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && Platform.isIOS) {
-      if (_betterPlayerController.isPipMode() ?? false) {
-        _betterPlayerController.disablePictureInPicture();
-      }
-    }
     super.didChangeAppLifecycleState(state);
   }
 
   void eventListener(BetterPlayerEvent event) {
-    debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
-    switch (event.betterPlayerEventType) {
-      case BetterPlayerEventType.play:
-        if (Platform.isIOS && !_isPiPMode) {
-          _betterPlayerController.setAutomaticPipMode(autoPip: true);
-          setState(() {
-            _shouldStartPIP = true;
-          });
-        }
-        break;
-      case BetterPlayerEventType.pause:
-        if (Platform.isIOS && !_isPiPMode) {
-          _betterPlayerController.setAutomaticPipMode(autoPip: false);
-          setState(() {
-            _shouldStartPIP = false;
-          });
-        }
-      case BetterPlayerEventType.enteringPip:
-        setState(() {
-          _isPiPMode = true;
-        });
-      case BetterPlayerEventType.restorePip:
-        setState(() {
-          _isPiPMode = false;
-        });
-      case BetterPlayerEventType.closePip:
-        if (Platform.isIOS) {
-          _betterPlayerController.pause();
-        }
-        setState(() {
-          _isPiPMode = false;
-        });
-      default:
+    if (event.betterPlayerEventType != BetterPlayerEventType.progress &&
+        event.betterPlayerEventType != BetterPlayerEventType.bufferingUpdate &&
+        event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenStart &&
+        event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenEnd &&
+        event.betterPlayerEventType != BetterPlayerEventType.controlsVisible) {
+      debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
     }
   }
 
@@ -165,8 +120,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
                 final isShowing = info.visibleFraction > 0;
                 if (isShowing && PictureInPicture.isActive) {
                   PictureInPicture.stopPiP();
-                  _betterPlayerController.setAutomaticPipMode(
-                      autoPip: _betterPlayerController.isPlaying() ?? false);
                 }
               },
               child: AspectRatio(
@@ -180,8 +133,8 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
             ElevatedButton(
               child: Text("Show PiP"),
               onPressed: () async {
-                final hasPipPermission = Platform.isIOS ||
-                    (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
+                final hasPipPermission =
+                    Platform.isIOS || (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
                 if (hasPipPermission) {
                   _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
                 } else {
@@ -189,20 +142,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
                     _betterPlayerController.openPipPermissionSettings();
                   }
                 }
-              },
-            ),
-            ElevatedButton(
-              child: Text("Disable PiP"),
-              onPressed: () {
-                _betterPlayerController.disablePictureInPicture();
-              },
-            ),
-            ElevatedButton(
-              child: Text('Auto PIP: ' + (_shouldStartPIP ? 'ON' : 'OFF')),
-              onPressed: () {
-                setState(() {
-                  _betterPlayerController.setAutomaticPipMode(autoPip: _shouldStartPIP);
-                });
               },
             ),
             Container(height: 500, color: Colors.amber),

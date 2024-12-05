@@ -598,6 +598,20 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         _textureId, width, height, bitrate);
   }
 
+  Future<void> resetToOriginPipContentSource(bool resetOrigin) async {
+    if (Platform.isIOS) {
+      if (_textureId != null) {
+        await _videoPlayerPlatform.resetToOriginPipContentSource(_textureId!, resetOrigin);
+      }
+    }
+  }
+
+  Future<void> setBeforePipSourceRectHint({double? top, double? left, double? width, double? height}) async {
+    if (Platform.isAndroid) {
+      await _videoPlayerPlatform.setBeforePipSourceRectHint(top, left, width, height);
+    }
+  }
+
   Future<void> enablePictureInPicture(
       {double? top, double? left, double? width, double? height}) async {
     await _videoPlayerPlatform.enablePictureInPicture(
@@ -616,9 +630,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   }
 
   Future<bool?> isPictureInPictureSupported() async {
-    if (_textureId == null) {
-      return false;
-    }
     return _videoPlayerPlatform.isPictureInPictureEnabled(_textureId);
   }
 
@@ -631,15 +642,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
 
   Future<void> openPipPermissionSettings() async {
     await _videoPlayerPlatform.openPipPermissionSettings(_textureId);
-  }
-
-  Future<void> setAutomaticPipMode({required bool autoPip}) async {
-    if (Platform.isIOS) {
-      await _videoPlayerPlatform.setAutomaticPipMode(
-        textureId: textureId,
-        autoPip: autoPip,
-      );
-    }
   }
 
   void refresh() {

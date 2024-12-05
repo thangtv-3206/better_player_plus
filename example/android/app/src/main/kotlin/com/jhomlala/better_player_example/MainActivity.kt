@@ -13,6 +13,7 @@ import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity() {
     private val PIP_CONTAINER = "PIP_CONTAINER"
+    private val PADDING_TOP_KEY = 2131364639
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,10 +22,11 @@ class MainActivity : FlutterActivity() {
             ConstraintLayout(this).apply {
                 tag = PIP_CONTAINER
                 isVisible = false
-                setBackgroundColor(Color.BLACK)
+                elevation = 99F
+                setBackgroundColor(Color.WHITE)
             }, ConstraintLayout.LayoutParams(
                 ConstraintLayout.LayoutParams.MATCH_PARENT,
-                ConstraintLayout.LayoutParams.WRAP_CONTENT
+                ConstraintLayout.LayoutParams.MATCH_PARENT
             )
         )
     }
@@ -57,19 +59,20 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    override fun onPictureInPictureModeChanged(
-        isInPictureInPictureMode: Boolean,
-        newConfig: Configuration?
-    ) {
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         window.decorView.findViewWithTag<ViewGroup>(PIP_CONTAINER).let {
             if (isInPictureInPictureMode) {
                 it.isVisible = true
             } else {
-                it.postDelayed(200) {
+                (it.getTag(PADDING_TOP_KEY) as? Int?)?.let { top ->
+                    it.setPadding(0, top, 0, 0)
+                }
+                it.postDelayed(600) {
                     it.isVisible = false
+                    it.setPadding(0, 0, 0, 0)
                 }
             }
         }
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
 }
