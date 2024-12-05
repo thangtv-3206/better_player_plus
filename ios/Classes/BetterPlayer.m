@@ -580,12 +580,11 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)resetToOriginPipContentSource:(bool)resetOrigin {
-    if (_pipController) {
-        if (resetOrigin) {
-            self._originPipContentSource = NULL;
-        } else if (self._originPipContentSource && _pipController.contentSource != self._originPipContentSource) {
-            _pipController.contentSource = self._originPipContentSource;
-        }
+    if (resetOrigin) {
+        self._originPipContentSource = NULL;
+    } else if (self._originPipContentSource &&
+               _pipController && _pipController.contentSource != self._originPipContentSource) {
+        _pipController.contentSource = self._originPipContentSource;
     }
 }
 
