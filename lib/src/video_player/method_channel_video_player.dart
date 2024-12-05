@@ -226,12 +226,13 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> resetToOriginPipContentSource(int textureId) async {
+  Future<void> resetToOriginPipContentSource(int textureId, bool resetOrigin) async {
     if (Platform.isIOS) {
       return _channel.invokeMethod<void>(
         'resetToOriginPipContentSource',
         <String, dynamic>{
           'textureId': textureId,
+          'resetOrigin': resetOrigin,
         },
       );
     }

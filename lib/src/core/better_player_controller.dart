@@ -299,6 +299,9 @@ class BetterPlayerController with WidgetsBindingObserver {
     otherBetterPlayerController.detachVideoPlayerController();
     otherBetterPlayerController.dispose(forceDispose: true);
     videoPlayerController?.addListener(_onVideoPlayerChanged);
+    if (Platform.isIOS) {
+      resetToOriginPipContentSource(resetOrigin: true);
+    }
 
     _setupSubtitles();
     setupSubtitleSource(_betterPlayerSubtitlesSourceList.last, sourceInitialize: true);
@@ -1103,9 +1106,9 @@ class BetterPlayerController with WidgetsBindingObserver {
     return _overriddenFit ?? betterPlayerConfiguration.fit;
   }
 
-  Future<void>? resetToOriginPipContentSource() async {
+  Future<void>? resetToOriginPipContentSource({bool resetOrigin = false}) async {
     if (Platform.isIOS) {
-      await videoPlayerController?.resetToOriginPipContentSource();
+      await videoPlayerController?.resetToOriginPipContentSource(resetOrigin);
     }
   }
 

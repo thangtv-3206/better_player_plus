@@ -138,7 +138,7 @@ abstract class VideoPlayerPlatform {
     throw UnimplementedError('getAbsolutePosition() has not been implemented.');
   }
 
-  Future<void> resetToOriginPipContentSource(int textureId) {
+  Future<void> resetToOriginPipContentSource(int textureId, bool resetOrigin) {
     throw UnimplementedError(
         'resetToOriginPipContentSource() has not been implemented.');
   }

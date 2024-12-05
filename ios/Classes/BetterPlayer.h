@@ -51,7 +51,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setSpeed:(double)speed result:(FlutterResult)result;
 - (void)setAudioTrack:(NSString *)name index:(int)index;
 - (void)setTrackParameters:(int)width :(int)height :(int)bitrate;
-- (void)resetToOriginPipContentSource;
+- (void)resetToOriginPipContentSource:(bool)resetOrigin;
 - (void)setPictureInPicture:(BOOL)pictureInPicture;
 - (void)gotoBackgroundWithPIP;
 - (int64_t)absolutePosition;

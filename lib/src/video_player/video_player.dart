@@ -598,10 +598,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         _textureId, width, height, bitrate);
   }
 
-  Future<void> resetToOriginPipContentSource() async {
+  Future<void> resetToOriginPipContentSource(bool resetOrigin) async {
     if (Platform.isIOS) {
       if (_textureId != null) {
-        await _videoPlayerPlatform.resetToOriginPipContentSource(_textureId!);
+        await _videoPlayerPlatform.resetToOriginPipContentSource(_textureId!, resetOrigin);
       }
     }
   }

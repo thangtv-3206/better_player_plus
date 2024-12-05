@@ -47,6 +47,9 @@ bool isRestorePip = false;
             }
         } else {
             _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerView.playerLayer];
+            if (!self._originPipContentSource) {
+                self._originPipContentSource = _pipController.contentSource;
+            }
         }
     }
 
@@ -576,10 +579,13 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-
-- (void)resetToOriginPipContentSource {
-    if (_pipController && _pipController.contentSource != self._originPipContentSource) {
-        _pipController.contentSource = self._originPipContentSource;
+- (void)resetToOriginPipContentSource:(bool)resetOrigin {
+    if (_pipController) {
+        if (resetOrigin) {
+            self._originPipContentSource = NULL;
+        } else if (self._originPipContentSource && _pipController.contentSource != self._originPipContentSource) {
+            _pipController.contentSource = self._originPipContentSource;
+        }
     }
 }
 
