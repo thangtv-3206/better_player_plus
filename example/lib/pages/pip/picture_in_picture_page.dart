@@ -14,8 +14,7 @@ class PictureInPicturePage extends StatefulWidget {
   _PictureInPicturePageState createState() => _PictureInPicturePageState();
 }
 
-class _PictureInPicturePageState extends State<PictureInPicturePage>
-    with WidgetsBindingObserver {
+class _PictureInPicturePageState extends State<PictureInPicturePage> with WidgetsBindingObserver {
   late BetterPlayerController _betterPlayerController;
   GlobalKey _betterPlayerKey = GlobalKey();
   late ScrollController _scrollController;
@@ -24,23 +23,13 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
   void initState() {
     _scrollController = ScrollController();
     WidgetsBinding.instance.addObserver(this);
-    PictureInPicture.updatePiPParams(
-      pipParams: const PiPParams(
-        pipWindowHeight: 108,
-        pipWindowWidth: 192,
-        bottomSpace: 64,
-      ),
-    );
     BetterPlayerConfiguration betterPlayerConfiguration = BetterPlayerConfiguration(
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
       autoPlay: true,
       autoDispose: false,
       allowedScreenSleep: false,
-      deviceOrientationsAfterFullScreen: [
-        DeviceOrientation.portraitDown,
-        DeviceOrientation.portraitUp
-      ],
+      deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp],
       controlsConfiguration: BetterPlayerControlsConfiguration(
         showControlsOnInitialize: false,
         controlBarHeight: 24,
@@ -106,13 +95,8 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
         event.betterPlayerEventType != BetterPlayerEventType.bufferingUpdate &&
         event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenStart &&
         event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenEnd &&
-        event.betterPlayerEventType != BetterPlayerEventType.controlsVisible &&
-        event.betterPlayerEventType != BetterPlayerEventType.bufferingEnd) {
+        event.betterPlayerEventType != BetterPlayerEventType.controlsVisible) {
       debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
-    }
-
-    if (event.betterPlayerEventType == BetterPlayerEventType.initialized) {
-      _betterPlayerController.setBeforePipSourceRectHint(_betterPlayerKey);
     }
   }
 
@@ -149,8 +133,8 @@ class _PictureInPicturePageState extends State<PictureInPicturePage>
             ElevatedButton(
               child: Text("Show PiP"),
               onPressed: () async {
-                final hasPipPermission = Platform.isIOS ||
-                    (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
+                final hasPipPermission =
+                    Platform.isIOS || (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
                 if (hasPipPermission) {
                   _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
                 } else {

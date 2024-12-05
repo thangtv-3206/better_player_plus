@@ -394,19 +394,11 @@ bool _remoteCommandsInitialized = false;
 
             [player setTrackParameters:width: height : bitrate];
             result(nil);
-        } else if ([@"setBeforePipSourceRectHint" isEqualToString:call.method]) {
-            double left = [argsMap[@"left"] doubleValue];
-            double top = [argsMap[@"top"] doubleValue];
-            double width = [argsMap[@"width"] doubleValue];
-            double height = [argsMap[@"height"] doubleValue];
-            [player setBeforePipSourceRectHint:CGRectMake(left, top, width, height)];
+        } else if ([@"resetToOriginPipContentSource" isEqualToString:call.method]) {
+            [player resetToOriginPipContentSource];
             result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
-            double left = [argsMap[@"left"] doubleValue];
-            double top = [argsMap[@"top"] doubleValue];
-            double width = [argsMap[@"width"] doubleValue];
-            double height = [argsMap[@"height"] doubleValue];
-            [player gotoBackgroundWithPIP:CGRectMake(left, top, width, height)];
+            [player gotoBackgroundWithPIP];
             result(nil);
         } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
             [player setPictureInPicture:false];

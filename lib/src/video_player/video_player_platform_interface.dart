@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+
 import 'method_channel_video_player.dart';
 
 /// The interface that implementations of video_player must implement.
@@ -137,10 +138,13 @@ abstract class VideoPlayerPlatform {
     throw UnimplementedError('getAbsolutePosition() has not been implemented.');
   }
 
-  Future<void> setBeforePipSourceRectHint(int? textureId, double? top, double? left,
-      double? width, double? height) {
+  Future<void> resetToOriginPipContentSource(int textureId) {
     throw UnimplementedError(
-        'setBeforePipSourceRectHint() has not been implemented.');
+        'resetToOriginPipContentSource() has not been implemented.');
+  }
+
+  Future<void> setBeforePipSourceRectHint(double? top, double? left, double? width, double? height) {
+    throw UnimplementedError('setBeforePipSourceRectHint() has not been implemented.');
   }
 
   ///Enables PiP mode.

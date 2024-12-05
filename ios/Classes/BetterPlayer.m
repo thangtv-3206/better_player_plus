@@ -14,7 +14,6 @@ void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL)
 API_AVAILABLE(ios(9.0))
 AVPictureInPictureController *_pipController;
 bool isRestorePip = false;
-CGRect _beforePipSourceRectHint;
 
 @implementation BetterPlayer
 - (instancetype)initWithFrame:(CGRect)frame {
@@ -36,6 +35,21 @@ CGRect _beforePipSourceRectHint;
 - (nonnull UIView *)view {
     BetterPlayerView *playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
     playerView.player = _player;
+    playerView.playerLayer.needsDisplayOnBoundsChange = YES;
+
+    if ([AVPictureInPictureController isPictureInPictureSupported]) {
+        if (!_pipController) {
+            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:playerView.playerLayer];
+            _pipController.delegate = self;
+            self._originPipContentSource = _pipController.contentSource;
+            if (_lastAvPlayerTimeControlStatus == AVPlayerTimeControlStatusPlaying) {
+                [self willStartPictureInPicture:true];
+            }
+        } else {
+            _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerView.playerLayer];
+        }
+    }
+
     return playerView;
 }
 
@@ -562,10 +576,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)setBeforePipSourceRectHint:(CGRect)frame {
-    _beforePipSourceRectHint = frame;
-    if (self._playerLayer) {
-        self._playerLayer.frame = frame;
+
+- (void)resetToOriginPipContentSource {
+    if (_pipController && _pipController.contentSource != self._originPipContentSource) {
+        _pipController.contentSource = self._originPipContentSource;
     }
 }
 
@@ -587,31 +601,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)setupPipController {
-    if (@available(iOS 9.0, *) && [AVPictureInPictureController isPictureInPictureSupported]) {
-        if (_player) {
-            self._playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
-            self._playerLayer.frame = _beforePipSourceRectHint;
-            self._playerLayer.opacity = .0001;
-            self._playerLayer.needsDisplayOnBoundsChange = YES;
-            UIViewController *vc = [[[UIApplication sharedApplication] keyWindow] rootViewController];
-            [vc.view.layer addSublayer:self._playerLayer];
-            vc.view.layer.needsDisplayOnBoundsChange = YES;
-
-            [[AVAudioSession sharedInstance] setActive:YES error:nil];
-            [[UIApplication sharedApplication] beginReceivingRemoteControlEvents];
-            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:self._playerLayer];
-            _pipController.delegate = self;
-        }
-    }
-}
-
 - (void)willStartPictureInPicture:(bool)autoPip {
     if (autoPip) {
-        if (!_pipController) {
-            [self setupPipController];
-        }
-
         if (_pipController && !_pipController.canStartPictureInPictureAutomaticallyFromInline) {
             _pipController.canStartPictureInPictureAutomaticallyFromInline = YES;
         }
@@ -620,13 +611,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)gotoBackgroundWithPIP:(CGRect)frame {
-    [self setBeforePipSourceRectHint:frame];
-
+- (void)gotoBackgroundWithPIP {
     if (_pipController && _pipController.canStartPictureInPictureAutomaticallyFromInline) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [[UIApplication sharedApplication] performSelector:@selector(suspend)];
-        });
+        [[UIApplication sharedApplication] performSelector:@selector(suspend)];
     }
 }
 

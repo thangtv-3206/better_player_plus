@@ -3,11 +3,13 @@
 // found in the LICENSE file.
 import 'dart:async';
 import 'dart:io';
+
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player_plus/src/core/better_player_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+
 import 'video_player_platform_interface.dart';
 
 const MethodChannel _channel = MethodChannel('better_player_channel');
@@ -224,17 +226,30 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setBeforePipSourceRectHint(int? textureId, double? top, double? left, double? width, double? height) async {
-    return _channel.invokeMethod<void>(
-      'setBeforePipSourceRectHint',
-      <String, dynamic>{
-        'textureId': textureId,
-        'top': top,
-        'left': left,
-        'width': width,
-        'height': height,
-      },
-    );
+  Future<void> resetToOriginPipContentSource(int textureId) async {
+    if (Platform.isIOS) {
+      return _channel.invokeMethod<void>(
+        'resetToOriginPipContentSource',
+        <String, dynamic>{
+          'textureId': textureId,
+        },
+      );
+    }
+  }
+
+  @override
+  Future<void> setBeforePipSourceRectHint(double? top, double? left, double? width, double? height) async {
+    if (Platform.isAndroid) {
+      return _channel.invokeMethod<void>(
+        'setBeforePipSourceRectHint',
+        <String, dynamic>{
+          'top': top,
+          'left': left,
+          'width': width,
+          'height': height,
+        },
+      );
+    }
   }
 
   @override

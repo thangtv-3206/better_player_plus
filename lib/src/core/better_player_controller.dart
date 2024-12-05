@@ -821,6 +821,9 @@ class BetterPlayerController with WidgetsBindingObserver {
         !_hasCurrentDataSourceInitialized) {
       _hasCurrentDataSourceInitialized = true;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.initialized));
+      if (Platform.isAndroid) {
+        setBeforePipSourceRectHint();
+      }
     }
 
     if (currentVideoPlayerValue.isPip) {
@@ -1100,22 +1103,30 @@ class BetterPlayerController with WidgetsBindingObserver {
     return _overriddenFit ?? betterPlayerConfiguration.fit;
   }
 
-  Future<void>? setBeforePipSourceRectHint(GlobalKey betterPlayerGlobalKey) async {
-    final playerContext = betterPlayerGlobalKey.currentContext;
-    final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null) {
-      BetterPlayerUtils.log("RenderBox is null. Did you provide valid global"
-          " key?");
-      return;
+  Future<void>? resetToOriginPipContentSource() async {
+    if (Platform.isIOS) {
+      await videoPlayerController?.resetToOriginPipContentSource();
     }
-    final Offset position = renderBox.localToGlobal(Offset.zero);
+  }
 
-    await videoPlayerController?.setBeforePipSourceRectHint(
-      left: position.dx,
-      top: position.dy,
-      width: renderBox.size.width,
-      height: renderBox.size.height,
-    );
+  Future<void>? setBeforePipSourceRectHint({GlobalKey? playerKey}) async {
+    if (Platform.isAndroid) {
+      final playerContext = playerKey?.currentContext ?? betterPlayerGlobalKey?.currentContext;
+      final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
+      if (renderBox == null) {
+        BetterPlayerUtils.log("RenderBox is null. Did you provide valid global"
+            " key?");
+        return;
+      }
+      final Offset position = renderBox.localToGlobal(Offset.zero);
+
+      await videoPlayerController?.setBeforePipSourceRectHint(
+        left: position.dx,
+        top: position.dy,
+        width: renderBox.size.width,
+        height: renderBox.size.height,
+      );
+    }
   }
 
   ///Enable Picture in Picture (PiP) mode. [betterPlayerGlobalKey] is required
@@ -1141,10 +1152,6 @@ class BetterPlayerController with WidgetsBindingObserver {
       width: renderBox.size.width,
       height: renderBox.size.height,
     );
-
-    if (Platform.isIOS) {
-      _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
-    }
   }
 
   ///Disable Picture in Picture mode if it's enabled.
