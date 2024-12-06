@@ -23,6 +23,7 @@ import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import io.flutter.embedding.engine.loader.FlutterLoader
@@ -119,12 +120,31 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     }
 
     override fun onUserLeaveHint() {
-        val currentBetterPlayer = videoPlayers.values.lastOrNull()
-        if (currentBetterPlayer != null && currentBetterPlayer.exoPlayer.isPlaying
-            && !activity!!.isInPictureInPictureMode
-            && hasPipPermission(flutterState!!.applicationContext)
-        ) {
-            enablePictureInPicture(currentBetterPlayer)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            val currentBetterPlayer = videoPlayers.values.lastOrNull()
+            if (currentBetterPlayer != null && currentBetterPlayer.exoPlayer.isPlaying
+                && !activity!!.isInPictureInPictureMode
+                && hasPipPermission(flutterState!!.applicationContext)
+            ) {
+                enablePictureInPicture(currentBetterPlayer)
+            }
+        }
+    }
+
+    private val exoPlayerListener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                activity?.setPictureInPictureParams(PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .setAutoEnterEnabled(isPlaying)
+                    .apply {
+                        beforePipSourceRectHint?.let {
+                            setSourceRectHint(it)
+                        }
+                    }
+                    .build()
+                )
+            }
         }
     }
 
@@ -193,7 +213,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     flutterState?.applicationContext!!, eventChannel, handle,
                     customDefaultLoadControl, result
                 )
-
+                betterPlayer.exoPlayer.addListener(exoPlayerListener)
                 pipContainer?.addView(
                     PlayerView(activity!!).apply {
                         tag = handle.id()
@@ -607,6 +627,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     }
 
     private fun dispose(player: BetterPlayer, textureId: Long) {
+        player.exoPlayer.removeListener(exoPlayerListener)
         pipContainer?.let { parent ->
             parent.findViewWithTag<View>(textureId)?.let {
                 parent.removeView(it)

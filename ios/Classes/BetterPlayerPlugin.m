@@ -398,11 +398,10 @@ bool _remoteCommandsInitialized = false;
             [player resetToOriginPipContentSource:[argsMap[@"resetOrigin"] boolValue]];
             result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)),
-                           dispatch_get_main_queue(), ^{
-                        [player gotoBackgroundWithPIP];
-                        result(nil);
-                    });
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [player gotoBackgroundWithPIP];
+                result(nil);
+            });
         } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
             [player setPictureInPicture:false];
         } else if ([@"setAudioTrack" isEqualToString:call.method]){
