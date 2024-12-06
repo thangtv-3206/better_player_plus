@@ -95,6 +95,8 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
         event.betterPlayerEventType != BetterPlayerEventType.bufferingUpdate &&
         event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenStart &&
         event.betterPlayerEventType != BetterPlayerEventType.controlsHiddenEnd &&
+        event.betterPlayerEventType != BetterPlayerEventType.bufferingStart &&
+        event.betterPlayerEventType != BetterPlayerEventType.bufferingEnd &&
         event.betterPlayerEventType != BetterPlayerEventType.controlsVisible) {
       debugPrint("FlutterDebug: ${event.betterPlayerEventType}");
     }

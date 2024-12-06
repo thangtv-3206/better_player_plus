@@ -38,19 +38,21 @@ bool isRestorePip = false;
     playerView.playerLayer.needsDisplayOnBoundsChange = YES;
 
     if ([AVPictureInPictureController isPictureInPictureSupported]) {
-        if (!_pipController) {
-            _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:playerView.playerLayer];
-            _pipController.delegate = self;
-            if (_lastAvPlayerTimeControlStatus == AVPlayerTimeControlStatusPlaying) {
-                [self willStartPictureInPicture:true];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (!_pipController) {
+                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:playerView.playerLayer];
+                _pipController.delegate = self;
+                if (_lastAvPlayerTimeControlStatus == AVPlayerTimeControlStatusPlaying) {
+                    [self willStartPictureInPicture:true];
+                }
+            } else {
+                _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerView.playerLayer];
             }
-        } else {
-            _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerView.playerLayer];
-        }
 
-        if (!self._originPipContentSource) {
-            self._originPipContentSource = _pipController.contentSource;
-        }
+            if (!self._originPipContentSource) {
+                self._originPipContentSource = _pipController.contentSource;
+            }
+        });
     }
 
     return playerView;
