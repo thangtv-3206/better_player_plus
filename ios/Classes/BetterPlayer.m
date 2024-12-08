@@ -10,11 +10,6 @@ static void* statusContext = &statusContext;
 static void* playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
 static void* presentationSizeContext = &presentationSizeContext;
 
-void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
-API_AVAILABLE(ios(9.0))
-AVPictureInPictureController *_pipController;
-bool isRestorePip = false;
-
 @implementation BetterPlayer
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super init];
@@ -397,7 +392,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         }
     } else if (context == playbackLikelyToKeepUpContext) {
         if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
-            [self updatePlayingState];
+                [self updatePlayingState];
             if (_eventSink != nil) {
                 _eventSink(@{@"event" : @"bufferingEnd", @"key" : _key});
             }
@@ -600,14 +595,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)setRestoreUserInterfaceForPIPStopCompletionHandler:(BOOL)restore
-{
-    if (_restoreUserInterfaceForPIPStopCompletionHandler != NULL) {
-        _restoreUserInterfaceForPIPStopCompletionHandler(restore);
-        _restoreUserInterfaceForPIPStopCompletionHandler = NULL;
-    }
-}
-
 - (void)willStartPictureInPicture:(bool)autoPip {
     if (autoPip) {
         if (_pipController && !_pipController.canStartPictureInPictureAutomaticallyFromInline) {
@@ -619,20 +606,22 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)gotoBackgroundWithPIP {
-    if (_pipController && _pipController.canStartPictureInPictureAutomaticallyFromInline) {
+    [self willStartPictureInPicture:true];
+    if (_pipController.canStartPictureInPictureAutomaticallyFromInline == YES) {
+        [_pipController invalidatePlaybackState];
         [[UIApplication sharedApplication] performSelector:@selector(suspend)];
     }
 }
 
-- (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
-    if (_eventSink != nil && !isRestorePip) {
+- (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
+    if (_eventSink != nil && !_isRestorePip) {
         _eventSink(@{@"event" : @"closePip"});
         [self pause];
     }
-    isRestorePip = false;
+    _isRestorePip = false;
 }
 
-- (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController  API_AVAILABLE(ios(9.0)){
+- (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
     if (_eventSink != nil) {
         _eventSink(@{@"event" : @"pipStart"});
     }
@@ -646,11 +635,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL))completionHandler {
     completionHandler(YES);
-    isRestorePip = true;
+    _isRestorePip = true;
     if (_eventSink != nil) {
         _eventSink(@{@"event" : @"restorePip"});
     }
-    [self setRestoreUserInterfaceForPIPStopCompletionHandler: true];
 }
 
 - (void) setAudioTrack:(NSString*) name index:(int) index{
