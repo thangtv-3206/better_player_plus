@@ -234,7 +234,6 @@ class _LiveVideoControlsState
       visible: !(_controller?.value.hasError ?? false),
       child: _buildMaterialClickableWidget(
         onTap: () async {
-          if (betterPlayerController!.isPipMode() ?? false) return;
           final hasPipPermission = Platform.isIOS ||
               (Platform.isAndroid &&
                   await betterPlayerController!.hasPipPermission());
