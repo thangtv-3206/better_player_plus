@@ -63,7 +63,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private var currentNotificationDataSource: Map<String, Any?>? = null
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var activity: Activity? = null
-    private var beforePipSourceRectHint: Rect? = null;
+    private var beforePipSourceRectHint: Rect? = null
     private var pipContainer: ViewGroup? = null
 
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
@@ -154,20 +154,16 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 isInPip = pipContainer.isVisible
                 val currentBetterPlayer = videoPlayers.values.lastOrNull()
                 if (currentBetterPlayer != null) {
-                    val textureId = currentBetterPlayer.textureEntry.id();
-                    currentBetterPlayer.exoPlayer.clearVideoSurface()
+                    val textureId = currentBetterPlayer.textureEntry.id()
+                    val playerView = pipContainer.findViewWithTag<PlayerView>(textureId)
                     if (isInPip) {
-                        pipContainer.findViewWithTag<PlayerView>(textureId)?.let {
-                            it.player = currentBetterPlayer.exoPlayer
-                            it.isVisible = true
-                        }
+                        playerView.isVisible = true
+                        playerView.player = currentBetterPlayer.exoPlayer
                         currentBetterPlayer.onPictureInPictureStatusChanged(true)
                     } else {
-                        pipContainer.findViewWithTag<PlayerView>(textureId)?.let {
-                            it.player = null
-                            it.isVisible = false
-                        }
+                        playerView.player = null
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
+                        playerView.isVisible = false
                         currentBetterPlayer.onPictureInPictureStatusChanged(false)
                         currentBetterPlayer.disposeMediaSession()
                     }
@@ -564,7 +560,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
         val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
         beforePipSourceRectHint = Rect(left, top, left + width, top + height)
-        pipContainer?.setTag(PADDING_TOP_KEY, top);
+        pipContainer?.setTag(PADDING_TOP_KEY, top)
     }
 
     private fun enablePictureInPicture(player: BetterPlayer) {
