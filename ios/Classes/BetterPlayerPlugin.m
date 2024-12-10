@@ -397,9 +397,9 @@ bool _remoteCommandsInitialized = false;
         } else if ([@"resetToOriginPipContentSource" isEqualToString:call.method]) {
             [player resetToOriginPipContentSource:[argsMap[@"resetOrigin"] boolValue]];
             result(nil);
-        } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
-                [player gotoBackgroundWithPIP];
-                result(nil);
+        } else if ([@"enablePictureInPicture" isEqualToString:call.method]) {
+            [player gotoBackgroundWithPIP];
+            result(nil);
         } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
             [player setPictureInPicture:false];
         } else if ([@"setAudioTrack" isEqualToString:call.method]){

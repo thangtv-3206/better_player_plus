@@ -392,7 +392,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         }
     } else if (context == playbackLikelyToKeepUpContext) {
         if ([[_player currentItem] isPlaybackLikelyToKeepUp]) {
-                [self updatePlayingState];
+            [self updatePlayingState];
             if (_eventSink != nil) {
                 _eventSink(@{@"event" : @"bufferingEnd", @"key" : _key});
             }
