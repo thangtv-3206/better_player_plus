@@ -138,7 +138,10 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
                 final hasPipPermission =
                     Platform.isIOS || (Platform.isAndroid && await _betterPlayerController.hasPipPermission());
                 if (hasPipPermission) {
-                  _betterPlayerController.enablePictureInPicture(_betterPlayerKey);
+                  if (_betterPlayerController.isPlaying() == false) {
+                    await _betterPlayerController.play();
+                  }
+                  _betterPlayerController.enablePictureInPicture(_betterPlayerController.betterPlayerGlobalKey!);
                 } else {
                   if (Platform.isAndroid) {
                     _betterPlayerController.openPipPermissionSettings();

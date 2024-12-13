@@ -22,11 +22,10 @@ class MainActivity : FlutterActivity() {
             ConstraintLayout(this).apply {
                 tag = PIP_CONTAINER
                 isVisible = false
-                elevation = 99F
                 setBackgroundColor(Color.WHITE)
-            }, ConstraintLayout.LayoutParams(
-                ConstraintLayout.LayoutParams.MATCH_PARENT,
-                ConstraintLayout.LayoutParams.MATCH_PARENT
+            }, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
             )
         )
     }
@@ -64,15 +63,24 @@ class MainActivity : FlutterActivity() {
         window.decorView.findViewWithTag<ViewGroup>(PIP_CONTAINER).let {
             if (isInPictureInPictureMode) {
                 it.isVisible = true
+                findViewById<ViewGroup>(FLUTTER_VIEW_ID)?.isVisible = false
             } else {
+                findViewById<ViewGroup>(FLUTTER_VIEW_ID)?.isVisible = true
                 (it.getTag(PADDING_TOP_KEY) as? Int?)?.let { top ->
                     it.setPadding(0, top, 0, 0)
                 }
-                it.postDelayed(600) {
+                it.postDelayed(750) {
                     it.isVisible = false
                     it.setPadding(0, 0, 0, 0)
                 }
             }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (!isInPictureInPictureMode) {
+            findViewById<ViewGroup>(FLUTTER_VIEW_ID)?.isVisible = true
         }
     }
 }
