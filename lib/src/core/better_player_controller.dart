@@ -652,7 +652,7 @@ class BetterPlayerController with WidgetsBindingObserver {
       throw StateError("The data source has not been initialized");
     }
 
-    if (_appLifecycleState == AppLifecycleState.resumed ||
+    if (_appLifecycleState != AppLifecycleState.paused ||
         isPipMode() == true) {
       await videoPlayerController!.play();
       _hasCurrentDataSourceStarted = true;
