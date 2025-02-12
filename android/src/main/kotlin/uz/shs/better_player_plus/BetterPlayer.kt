@@ -19,7 +19,6 @@ import android.util.Log
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.Observer
-import androidx.media3.*
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.ForwardingPlayer
@@ -70,9 +69,7 @@ import uz.shs.better_player_plus.DataSourceUtils.getDataSourceFactory
 import uz.shs.better_player_plus.DataSourceUtils.getUserAgent
 import uz.shs.better_player_plus.DataSourceUtils.isHTTP
 import java.io.File
-import java.lang.Exception
-import java.lang.IllegalStateException
-import java.util.*
+import java.util.UUID
 import kotlin.math.max
 import kotlin.math.min
 
@@ -472,7 +469,7 @@ internal class BetterPlayer(
         )
         surface = Surface(textureEntry.surfaceTexture())
         exoPlayer?.setVideoSurface(surface)
-        setAudioAttributes(exoPlayer, true)
+        setAudioAttributes(exoPlayer, false)
         exoPlayer?.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
@@ -528,14 +525,11 @@ internal class BetterPlayer(
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun setAudioAttributes(exoPlayer: ExoPlayer?, mixWithOthers: Boolean) {
-        val audioComponent = exoPlayer?.audioComponent ?: return
-        audioComponent.setAudioAttributes(
-            AudioAttributes.Builder().setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
+        exoPlayer?.setAudioAttributes(
+            AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MOVIE).build(),
             !mixWithOthers
         )
-
     }
 
     fun play() {
