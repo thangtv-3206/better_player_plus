@@ -462,6 +462,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             return;
         }
 
+        //Keep update latest when pause live video
+        _player.currentItem.canUseNetworkResourcesForLiveStreamingWhilePaused = YES;
+
         //Fix from https://github.com/flutter/flutter/issues/66413
         AVPlayerItemTrack *track = [self.player currentItem].tracks.firstObject;
         CGSize naturalSize = track.assetTrack.naturalSize;
