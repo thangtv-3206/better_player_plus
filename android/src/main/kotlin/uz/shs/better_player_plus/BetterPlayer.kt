@@ -542,6 +542,7 @@ internal class BetterPlayer(
 
     fun play() {
         exoPlayer?.playWhenReady = true
+        exoPlayer?.seekToDefaultPosition()
     }
 
     fun pause() {

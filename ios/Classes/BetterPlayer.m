@@ -330,6 +330,13 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                 }
                 [self willStartPictureInPicture:false];
             } else if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
+                CMTimeRange timeRange = [[_player.currentItem.seekableTimeRanges lastObject] CMTimeRangeValue];
+                CMTime livePosition = CMTimeRangeGetEnd(timeRange);
+                CMTime difference = CMTimeSubtract(livePosition, _player.currentItem.currentTime);
+                if (CMTimeGetSeconds(difference) > 1.0) {
+                    [_player seekToTime:livePosition toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+                }
+
                 if (_pipController.pictureInPictureActive == true) {
                     if (_eventSink != nil) {
                         _eventSink(@{@"event": @"play"});
@@ -454,6 +461,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (isLive == false && [self duration] == 0) {
             return;
         }
+
+        //Keep update latest when pause live video
+        _player.currentItem.canUseNetworkResourcesForLiveStreamingWhilePaused = YES;
 
         //Fix from https://github.com/flutter/flutter/issues/66413
         AVPlayerItemTrack *track = [self.player currentItem].tracks.firstObject;
