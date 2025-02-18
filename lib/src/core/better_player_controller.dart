@@ -594,8 +594,7 @@ class BetterPlayerController with WidgetsBindingObserver {
         enterFullScreen();
       }
       if (_isAutomaticPlayPauseHandled()) {
-        if (_appLifecycleState == AppLifecycleState.resumed &&
-            isPlayerVisible) {
+        if (_appLifecycleState == AppLifecycleState.resumed) {
           await play();
         } else {
           _wasPlayingBeforePause = true;

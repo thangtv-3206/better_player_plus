@@ -49,9 +49,15 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
         final isShowing = visibilityFraction > 0;
         final isPlaying = controller.isPlaying() ?? false;
         final isPipMode = controller.isPipMode() ?? false;
+        final isBuffering = controller.isBuffering() ?? false;
+        final isVideoInitialized = controller.isVideoInitialized() ?? false;
         final isFullScreen = controller.isFullScreen;
 
-        if (isPlaying && !isShowing && !PictureInPicture.isActive && !isPipMode && !isFullScreen) {
+        if ((isPlaying || (isBuffering && !isVideoInitialized)) &&
+            !isShowing &&
+            !PictureInPicture.isActive &&
+            !isPipMode &&
+            !isFullScreen) {
           PictureInPicture.startPiP(
             pipWidget: Builder(builder: (context) {
               return InAppPip(
