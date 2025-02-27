@@ -234,7 +234,8 @@ class BetterPlayerController with WidgetsBindingObserver {
   }
 
   ///Setup new data source in Better Player.
-  Future setupDataSource(BetterPlayerDataSource betterPlayerDataSource) async {
+  Future setupDataSource(BetterPlayerDataSource betterPlayerDataSource,
+      {BetterPlayerAsmsTrack? betterPlayerAsmsTrack}) async {
     postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource,
         parameters: <String, dynamic>{
           _dataSourceParameter: betterPlayerDataSource,
@@ -274,7 +275,7 @@ class BetterPlayerController with WidgetsBindingObserver {
 
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
-    setTrack(BetterPlayerAsmsTrack.defaultTrack());
+    setTrack(betterPlayerAsmsTrack ?? BetterPlayerAsmsTrack.defaultTrack());
   }
 
   void setupFromOtherController(BetterPlayerController otherBetterPlayerController) {
