@@ -338,44 +338,50 @@ class BetterPlayerController with WidgetsBindingObserver {
   ///This method configures tracks, subtitles and audio tracks from given
   ///master playlist.
   Future _setupAsmsDataSource() async {
-    final String? data = await BetterPlayerAsmsUtils.getDataFromUrl(
-      betterPlayerDataSource!.url,
-      _getHeaders(),
-    );
-    if (data != null) {
-      final BetterPlayerAsmsDataHolder _response =
-          await BetterPlayerAsmsUtils.parse(data, betterPlayerDataSource!.url);
+    final shouldLoadAsmsTracks = _betterPlayerDataSource?.useAsmsTracks == true;
+    final shouldLoadAsmsSubtitles = betterPlayerDataSource?.useAsmsSubtitles == true;
+    final shouldLoadAsmsAudioTracks =
+        betterPlayerDataSource?.useAsmsAudioTracks == true && _isDataSourceAsms(betterPlayerDataSource!);
 
-      /// Load tracks
-      if (_betterPlayerDataSource?.useAsmsTracks == true) {
-        _betterPlayerAsmsTracks = _response.tracks ?? [];
-      }
+    if (shouldLoadAsmsTracks || shouldLoadAsmsSubtitles || shouldLoadAsmsAudioTracks) {
+      final String? data = await BetterPlayerAsmsUtils.getDataFromUrl(
+        betterPlayerDataSource!.url,
+        _getHeaders(),
+      );
+      if (data != null) {
+        final BetterPlayerAsmsDataHolder _response =
+        await BetterPlayerAsmsUtils.parse(data, betterPlayerDataSource!.url);
 
-      /// Load subtitles
-      if (betterPlayerDataSource?.useAsmsSubtitles == true) {
-        final List<BetterPlayerAsmsSubtitle> asmsSubtitles =
-            _response.subtitles ?? [];
-        asmsSubtitles.forEach((BetterPlayerAsmsSubtitle asmsSubtitle) {
-          _betterPlayerSubtitlesSourceList.add(
-            BetterPlayerSubtitlesSource(
-              type: BetterPlayerSubtitlesSourceType.network,
-              name: asmsSubtitle.name,
-              urls: asmsSubtitle.realUrls,
-              asmsIsSegmented: asmsSubtitle.isSegmented,
-              asmsSegmentsTime: asmsSubtitle.segmentsTime,
-              asmsSegments: asmsSubtitle.segments,
-              selectedByDefault: asmsSubtitle.isDefault,
-            ),
-          );
-        });
-      }
+        /// Load tracks
+        if (shouldLoadAsmsTracks) {
+          _betterPlayerAsmsTracks = _response.tracks ?? [];
+        }
 
-      ///Load audio tracks
-      if (betterPlayerDataSource?.useAsmsAudioTracks == true &&
-          _isDataSourceAsms(betterPlayerDataSource!)) {
-        _betterPlayerAsmsAudioTracks = _response.audios ?? [];
-        if (_betterPlayerAsmsAudioTracks?.isNotEmpty == true) {
-          setAudioTrack(_betterPlayerAsmsAudioTracks!.first);
+        /// Load subtitles
+        if (shouldLoadAsmsSubtitles) {
+          final List<BetterPlayerAsmsSubtitle> asmsSubtitles =
+              _response.subtitles ?? [];
+          asmsSubtitles.forEach((BetterPlayerAsmsSubtitle asmsSubtitle) {
+            _betterPlayerSubtitlesSourceList.add(
+              BetterPlayerSubtitlesSource(
+                type: BetterPlayerSubtitlesSourceType.network,
+                name: asmsSubtitle.name,
+                urls: asmsSubtitle.realUrls,
+                asmsIsSegmented: asmsSubtitle.isSegmented,
+                asmsSegmentsTime: asmsSubtitle.segmentsTime,
+                asmsSegments: asmsSubtitle.segments,
+                selectedByDefault: asmsSubtitle.isDefault,
+              ),
+            );
+          });
+        }
+
+        ///Load audio tracks
+        if (shouldLoadAsmsAudioTracks) {
+          _betterPlayerAsmsAudioTracks = _response.audios ?? [];
+          if (_betterPlayerAsmsAudioTracks?.isNotEmpty == true) {
+            setAudioTrack(_betterPlayerAsmsAudioTracks!.first);
+          }
         }
       }
     }

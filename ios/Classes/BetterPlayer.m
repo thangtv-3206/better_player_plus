@@ -330,11 +330,15 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                 }
                 [self willStartPictureInPicture:false];
             } else if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
-                CMTimeRange timeRange = [[_player.currentItem.seekableTimeRanges lastObject] CMTimeRangeValue];
-                CMTime livePosition = CMTimeRangeGetEnd(timeRange);
-                CMTime difference = CMTimeSubtract(livePosition, _player.currentItem.currentTime);
-                if (CMTimeGetSeconds(difference) > 1.0) {
-                    [_player seekToTime:livePosition toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+                const BOOL isLive = CMTIME_IS_INDEFINITE([_player currentItem].duration);
+
+                if (isLive == true) {
+                    CMTimeRange timeRange = [[_player.currentItem.seekableTimeRanges lastObject] CMTimeRangeValue];
+                    CMTime livePosition = CMTimeRangeGetEnd(timeRange);
+                    CMTime difference = CMTimeSubtract(livePosition, _player.currentItem.currentTime);
+                    if (CMTimeGetSeconds(difference) > 1.0) {
+                        [_player seekToTime:livePosition toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+                    }
                 }
 
                 if (_pipController.pictureInPictureActive == true) {
