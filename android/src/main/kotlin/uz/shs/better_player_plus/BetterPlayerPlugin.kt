@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Rect
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -19,9 +20,10 @@ import android.util.LongSparseArray
 import android.util.Rational
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import androidx.activity.ComponentActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.doOnLayout
+import androidx.core.view.postDelayed
+import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.view.isVisible
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -52,10 +54,8 @@ import java.util.HashMap
  */
 @UnstableApi
 class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
-    PluginRegistry.UserLeaveHintListener, OnGlobalLayoutListener {
-    private var isInPip = false
+    PluginRegistry.UserLeaveHintListener {
     private val PIP_CONTAINER = "PIP_CONTAINER"
-    private val PADDING_TOP_KEY = 2131364639
     private val videoPlayers = ArrayMap<Long, BetterPlayer>()
     private val dataSources = LongSparseArray<Map<String, Any?>>()
     private var flutterState: FlutterState? = null
@@ -65,6 +65,33 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private var activity: Activity? = null
     private var beforePipSourceRectHint: Rect? = null
     private var pipContainer: ViewGroup? = null
+    private val mOnPictureInPictureModeChangedListener: (PictureInPictureModeChangedInfo) -> Unit =
+        { info ->
+            pipContainer?.let { pipContainer ->
+                val currentBetterPlayer = videoPlayers.values.lastOrNull() ?: return@let
+                val playerView = pipContainer.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id())
+
+                if (info.isInPictureInPictureMode) {
+                    pipContainer.isVisible = true
+                    playerView.isVisible = true
+                    playerView.player = currentBetterPlayer.exoPlayer
+                    currentBetterPlayer.onPictureInPictureStatusChanged(true)
+                } else {
+                    beforePipSourceRectHint?.top?.let { top ->
+                        pipContainer.setPadding(0, top, 0, 0)
+                    }
+                    pipContainer.postDelayed(750) {
+                        playerView.player = null
+                        currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
+                        playerView.isVisible = false
+                        currentBetterPlayer.onPictureInPictureStatusChanged(false)
+                        currentBetterPlayer.disposeMediaSession()
+                        pipContainer.setPadding(0, 0, 0, 0)
+                        pipContainer.isVisible = false
+                    }
+                }
+            }
+        }
 
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         val loader = FlutterLoader()
@@ -104,9 +131,21 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         this.activityPluginBinding = activityPluginBinding
         activity = activityPluginBinding.activity
         activityPluginBinding.addOnUserLeaveHintListener(this)
-        activity!!.window.decorView.doOnLayout {
-            pipContainer = activity?.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
-            pipContainer?.viewTreeObserver?.addOnGlobalLayoutListener(this)
+        (activity as? ComponentActivity)?.addOnPictureInPictureModeChangedListener(mOnPictureInPictureModeChangedListener)
+        pipContainer = activity?.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
+        if (pipContainer == null) {
+            pipContainer = ConstraintLayout(activity!!).apply {
+                tag = PIP_CONTAINER
+                isVisible = false
+                setBackgroundColor(Color.WHITE)
+            }
+            activity?.addContentView(
+                pipContainer,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+            )
         }
     }
 
@@ -116,7 +155,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
 
     override fun onDetachedFromActivity() {
         activityPluginBinding?.removeOnUserLeaveHintListener(this)
-        pipContainer?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
+        (activity as? ComponentActivity)?.removeOnPictureInPictureModeChangedListener(mOnPictureInPictureModeChangedListener)
     }
 
     override fun onUserLeaveHint() {
@@ -144,30 +183,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     }
                     .build()
                 )
-            }
-        }
-    }
-
-    override fun onGlobalLayout() {
-        pipContainer?.let { pipContainer ->
-            if (isInPip != pipContainer.isVisible) {
-                isInPip = pipContainer.isVisible
-                val currentBetterPlayer = videoPlayers.values.lastOrNull()
-                if (currentBetterPlayer != null) {
-                    val textureId = currentBetterPlayer.textureEntry.id()
-                    val playerView = pipContainer.findViewWithTag<PlayerView>(textureId)
-                    if (isInPip) {
-                        playerView.isVisible = true
-                        playerView.player = currentBetterPlayer.exoPlayer
-                        currentBetterPlayer.onPictureInPictureStatusChanged(true)
-                    } else {
-                        playerView.player = null
-                        currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
-                        playerView.isVisible = false
-                        currentBetterPlayer.onPictureInPictureStatusChanged(false)
-                        currentBetterPlayer.disposeMediaSession()
-                    }
-                }
             }
         }
     }
@@ -560,7 +575,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
         val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
         beforePipSourceRectHint = Rect(left, top, left + width, top + height)
-        pipContainer?.setTag(PADDING_TOP_KEY, top)
     }
 
     private fun enablePictureInPicture(player: BetterPlayer) {
