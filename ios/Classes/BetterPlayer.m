@@ -20,9 +20,7 @@ static void* presentationSizeContext = &presentationSizeContext;
     _player = [[AVPlayer alloc] init];
     _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
     ///Fix for loading large videos
-    if (@available(iOS 10.0, *)) {
-        _player.automaticallyWaitsToMinimizeStalling = false;
-    }
+    _player.automaticallyWaitsToMinimizeStalling = false;
     self._observersAdded = false;
     return self;
 }
@@ -189,12 +187,12 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)setDataSourceAsset:(NSString*)asset withKey:(NSString*)key withCertificateUrl:(NSString*)certificateUrl withLicenseUrl:(NSString*)licenseUrl cacheKey:(NSString*)cacheKey cacheManager:(CacheManager*)cacheManager overriddenDuration:(int) overriddenDuration{
     NSString* path = [[NSBundle mainBundle] pathForResource:asset ofType:nil];
-    return [self setDataSourceURL:[NSURL fileURLWithPath:path] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:(NSString*)licenseUrl withHeaders: @{} withCache: false cacheKey:cacheKey cacheManager:cacheManager overriddenDuration:overriddenDuration videoExtension: nil];
+    return [self setDataSourceURL:[NSURL fileURLWithPath:path] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:(NSString*)licenseUrl withHeaders: @{} withCache: false cacheKey:cacheKey cacheManager:cacheManager overriddenDuration:overriddenDuration videoExtension:nil width:0 height:0 bitrate:0];
 }
 
-- (void)setDataSourceURL:(NSURL*)url withKey:(NSString*)key withCertificateUrl:(NSString*)certificateUrl withLicenseUrl:(NSString*)licenseUrl withHeaders:(NSDictionary*)headers withCache:(BOOL)useCache cacheKey:(NSString*)cacheKey cacheManager:(CacheManager*)cacheManager overriddenDuration:(int) overriddenDuration videoExtension: (NSString*) videoExtension{
+- (void)setDataSourceURL:(NSURL *)url withKey:(NSString *)key withCertificateUrl:(NSString *)certificateUrl withLicenseUrl:(NSString *)licenseUrl withHeaders:(NSDictionary *)headers withCache:(BOOL)useCache cacheKey:(NSString *)cacheKey cacheManager:(CacheManager *)cacheManager overriddenDuration:(int)overriddenDuration videoExtension:(NSString *)videoExtension width:(int)width height:(int)height bitrate:(int)bitrate {
     _overriddenDuration = 0;
-    if (headers == [NSNull null] || headers == NULL){
+    if (headers == [NSNull null] || headers == NULL) {
         headers = @{};
     }
 
@@ -222,9 +220,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         item = [AVPlayerItem playerItemWithAsset:asset];
     }
 
-    if (@available(iOS 10.0, *) && overriddenDuration > 0) {
+    if (overriddenDuration > 0) {
         _overriddenDuration = overriddenDuration;
     }
+
+    //Keep update latest when pause live video
+    item.canUseNetworkResourcesForLiveStreamingWhilePaused = YES;
+    [self setTrackParameters:item :width :height :bitrate];
+
     return [self setDataSourcePlayerItem:item withKey:key];
 }
 
@@ -425,11 +428,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
     if (_isPlaying) {
         if (_player.rate == 0) {
-            if (@available(iOS 10.0, *)) {
-                [_player playImmediatelyAtRate:1.0];
-            } else {
-                [_player play];
-            }
+            [_player playImmediatelyAtRate:1.0];
             _player.rate = _playerRate;
         }
     } else {
@@ -465,9 +464,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         if (isLive == false && [self duration] == 0) {
             return;
         }
-
-        //Keep update latest when pause live video
-        _player.currentItem.canUseNetworkResourcesForLiveStreamingWhilePaused = YES;
 
         //Fix from https://github.com/flutter/flutter/issues/66413
         AVPlayerItemTrack *track = [self.player currentItem].tracks.firstObject;
@@ -514,11 +510,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (int64_t)duration {
     CMTime time;
-    if (@available(iOS 13, *)) {
-        time =  [[_player currentItem] duration];
-    } else {
-        time =  [[[_player currentItem] asset] duration];
-    }
+    time =  [[_player currentItem] duration];
     if (!CMTIME_IS_INVALID(_player.currentItem.forwardPlaybackEndTime)) {
         time = [[_player currentItem] forwardPlaybackEndTime];
     }
@@ -579,14 +571,16 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)setTrackParameters:(int) width: (int) height: (int)bitrate {
-    _player.currentItem.preferredPeakBitRate = bitrate;
-    if (@available(iOS 11.0, *)) {
-        if (width == 0 && height == 0){
-            _player.currentItem.preferredMaximumResolution = CGSizeZero;
-        } else {
-            _player.currentItem.preferredMaximumResolution = CGSizeMake(width, height);
-        }
+- (void)setTrackParameters:(int)width :(int)height :(int)bitrate {
+    [self setTrackParameters:_player.currentItem :width :height :bitrate];
+}
+
+- (void)setTrackParameters:(AVPlayerItem *)item :(int)width :(int)height :(int)bitrate {
+    item.preferredPeakBitRate = bitrate;
+    if (width == 0 && height == 0) {
+        item.preferredMaximumResolution = CGSizeZero;
+    } else {
+        item.preferredMaximumResolution = CGSizeMake(width, height);
     }
 }
 

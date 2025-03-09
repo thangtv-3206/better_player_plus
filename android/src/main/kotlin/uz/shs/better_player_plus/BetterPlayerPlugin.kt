@@ -41,6 +41,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
 import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
+import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.BITRATE_PARAMETER
 import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.HEIGHT_PARAMETER
 import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.LEFT_PARAMETER
 import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.TAG
@@ -431,6 +432,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             val clearKey = getParameter<String?>(dataSource, DRM_CLEARKEY_PARAMETER, null)
             val drmHeaders: Map<String, String> =
                 getParameter(dataSource, DRM_HEADERS_PARAMETER, HashMap())
+
+            val width = getParameter<Int>(dataSource, WIDTH_PARAMETER, 0)
+            val height = getParameter<Int>(dataSource, HEIGHT_PARAMETER, 0)
+            val bitRate = getParameter<Int>(dataSource, BITRATE_PARAMETER, 0)
+            player.setTrackParameters(width, height, bitRate)
+
             player.setDataSource(
                 context = flutterState!!.applicationContext,
                 key = key,

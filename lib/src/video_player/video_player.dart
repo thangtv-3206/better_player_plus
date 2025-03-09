@@ -6,6 +6,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:better_player_plus/better_player_plus.dart' show BetterPlayerAsmsTrack;
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player_plus/src/video_player/video_player_platform_interface.dart';
 import 'package:flutter/material.dart';
@@ -344,6 +345,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     String? activityName,
     String? clearKey,
     String? videoExtension,
+    BetterPlayerAsmsTrack? track,
   }) {
     return _setDataSource(
       DataSource(
@@ -367,6 +369,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         activityName: activityName,
         clearKey: clearKey,
         videoExtension: videoExtension,
+        track: track,
       ),
     );
   }
