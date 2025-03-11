@@ -69,13 +69,16 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
         }
       },
     );
-    _betterPlayerController = BetterPlayerController(betterPlayerConfiguration,
-        betterPlayerDataSource: BetterPlayerDataSource.network(
-          Constants.elephantDreamVideoUrl,
-          liveStream: true,
-        ));
+    _betterPlayerController = BetterPlayerController(betterPlayerConfiguration);
     _betterPlayerController.setBetterPlayerGlobalKey(_betterPlayerKey);
     _betterPlayerController.addEventsListener(eventListener);
+    _betterPlayerController.setupDataSource(
+        BetterPlayerDataSource.network(
+          Constants.hlsPlaylistUrl,
+          liveStream: true,
+          videoFormat: BetterPlayerVideoFormat.hls,
+        ),
+        /*betterPlayerAsmsTrack: BetterPlayerAsmsTrack('', 422, 180, 258157, 0, '', '')*/);
     super.initState();
   }
 

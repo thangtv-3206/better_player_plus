@@ -273,9 +273,10 @@ class BetterPlayerController with WidgetsBindingObserver {
       _setupSubtitles();
     }
 
+    _betterPlayerAsmsTrack = betterPlayerAsmsTrack ?? BetterPlayerAsmsTrack.defaultTrack();
+
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
-    setTrack(betterPlayerAsmsTrack ?? BetterPlayerAsmsTrack.defaultTrack());
   }
 
   void setupFromOtherController(BetterPlayerController otherBetterPlayerController) {
@@ -514,6 +515,7 @@ class BetterPlayerController with WidgetsBindingObserver {
               _betterPlayerDataSource?.notificationConfiguration?.activityName,
           clearKey: _betterPlayerDataSource?.drmConfiguration?.clearKey,
           videoExtension: _betterPlayerDataSource!.videoExtension,
+          track: _betterPlayerAsmsTrack,
         );
 
         break;

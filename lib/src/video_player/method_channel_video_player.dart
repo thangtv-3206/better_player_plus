@@ -98,6 +98,9 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'activityName': dataSource.activityName,
           'clearKey': dataSource.clearKey,
           'videoExtension': dataSource.videoExtension,
+          'width': dataSource.track?.width,
+          'height': dataSource.track?.height,
+          'bitrate': dataSource.track?.bitrate,
         };
         break;
       case DataSourceType.file:

@@ -348,7 +348,11 @@ bool _remoteCommandsInitialized = false;
                 }
                 [player setDataSourceAsset:assetPath withKey:key withCertificateUrl:certificateUrl withLicenseUrl: licenseUrl cacheKey:cacheKey cacheManager:_cacheManager overriddenDuration:overriddenDuration];
             } else if (uriArg) {
-                [player setDataSourceURL:[NSURL URLWithString:uriArg] withKey:key withCertificateUrl:certificateUrl withLicenseUrl: licenseUrl withHeaders:headers withCache: useCache cacheKey:cacheKey cacheManager:_cacheManager overriddenDuration:overriddenDuration videoExtension: videoExtension];
+                int width = [dataSource[@"width"] intValue];
+                int height = [dataSource[@"height"] intValue];
+                int bitrate = [dataSource[@"bitrate"] intValue];
+
+                [player setDataSourceURL:[NSURL URLWithString:uriArg] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:licenseUrl withHeaders:headers withCache:useCache cacheKey:cacheKey cacheManager:_cacheManager overriddenDuration:overriddenDuration videoExtension:videoExtension width:width height:height bitrate:bitrate];
             } else {
                 result(FlutterMethodNotImplemented);
             }
@@ -392,7 +396,7 @@ bool _remoteCommandsInitialized = false;
             int height = [argsMap[@"height"] intValue];
             int bitrate = [argsMap[@"bitrate"] intValue];
 
-            [player setTrackParameters:width: height : bitrate];
+            [player setTrackParameters:width :height :bitrate];
             result(nil);
         } else if ([@"resetToOriginPipContentSource" isEqualToString:call.method]) {
             [player resetToOriginPipContentSource:[argsMap[@"resetOrigin"] boolValue]];

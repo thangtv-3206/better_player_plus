@@ -1,3 +1,4 @@
+import 'package:better_player_plus/src/asms/better_player_asms_track.dart' show BetterPlayerAsmsTrack;
 import 'package:better_player_plus/src/video_player/video_player.dart';
 import 'package:better_player_plus/src/video_player/video_player_platform_interface.dart';
 
@@ -74,5 +75,6 @@ class MockVideoPlayerController extends VideoPlayerController {
     String? activityName,
     String? clearKey,
     String? videoExtension,
+    BetterPlayerAsmsTrack? track,
   }) async {}
 }

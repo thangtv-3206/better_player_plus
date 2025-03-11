@@ -6,6 +6,7 @@
 import 'dart:async';
 
 // Flutter imports:
+import 'package:better_player_plus/better_player_plus.dart' show BetterPlayerAsmsTrack;
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -246,6 +247,7 @@ class DataSource {
     this.activityName,
     this.clearKey,
     this.videoExtension,
+    this.track,
   }) : assert(uri == null || asset == null);
 
   /// Describes the type of data source this [VideoPlayerController]
@@ -323,6 +325,8 @@ class DataSource {
   final String? clearKey;
 
   final String? videoExtension;
+
+  final BetterPlayerAsmsTrack? track;
 
   /// Key to compare DataSource
   String get key {
