@@ -235,7 +235,7 @@ class BetterPlayerController with WidgetsBindingObserver {
 
   ///Setup new data source in Better Player.
   Future setupDataSource(BetterPlayerDataSource betterPlayerDataSource,
-      {BetterPlayerAsmsTrack? betterPlayerAsmsTrack}) async {
+      {Future<BetterPlayerAsmsTrack?>? betterPlayerAsmsTrackFuture}) async {
     postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource,
         parameters: <String, dynamic>{
           _dataSourceParameter: betterPlayerDataSource,
@@ -273,7 +273,7 @@ class BetterPlayerController with WidgetsBindingObserver {
       _setupSubtitles();
     }
 
-    _betterPlayerAsmsTrack = betterPlayerAsmsTrack ?? BetterPlayerAsmsTrack.defaultTrack();
+    _betterPlayerAsmsTrack = await betterPlayerAsmsTrackFuture ?? BetterPlayerAsmsTrack.defaultTrack();
 
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
