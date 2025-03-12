@@ -19,6 +19,7 @@ static void* presentationSizeContext = &presentationSizeContext;
     _disposed = false;
     _player = [[AVPlayer alloc] init];
     _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+    _player.audiovisualBackgroundPlaybackPolicy = AVPlayerAudiovisualBackgroundPlaybackPolicyContinuesIfPossible;
     ///Fix for loading large videos
     _player.automaticallyWaitsToMinimizeStalling = false;
     self._observersAdded = false;
