@@ -64,7 +64,7 @@ class _BetterPlayerMaterialControlsState
 
   ///Builds main widget of the controls.
   Widget _buildMainWidget() {
-    _wasLoading = isLoading(_latestValue);
+    _wasLoading = _controller?.isLoading() ?? false;
     if (_latestValue?.hasError == true) {
       return Container(
         color: Colors.black,
@@ -682,7 +682,7 @@ class _BetterPlayerMaterialControlsState
       if (!controlsNotVisible ||
           isVideoFinished(_controller!.value) ||
           _wasLoading ||
-          isLoading(_controller!.value)) {
+          _controller!.isLoading()) {
         setState(() {
           _latestValue = _controller!.value;
           if (isVideoFinished(_latestValue) &&

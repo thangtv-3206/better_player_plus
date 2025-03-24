@@ -169,6 +169,8 @@ class VideoPlayerValue {
 ///
 /// After [dispose] all further calls are ignored.
 class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
+  ///Min. time of buffered video to hide loading timer (in milliseconds)
+  static const int _bufferingInterval = 20000;
   final bool enablePIP;
   final BetterPlayerBufferingConfiguration bufferingConfiguration;
 
@@ -482,7 +484,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       _timer = Timer.periodic(
         const Duration(milliseconds: 300),
         (Timer timer) async {
-          if (_isDisposed || value.isBuffering || !value.isPlaying) {
+          if (_isDisposed || isLoading()) {
             return;
           }
 
@@ -491,7 +493,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           final Duration? newPosition = futures[0];
           final DateTime? newAbsolutePosition = futures[1];
           // ignore: invariant_booleans
-          if (_isDisposed || value.isBuffering || !value.isPlaying) {
+          if (_isDisposed || isLoading()) {
             return;
           }
 
@@ -508,6 +510,29 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     } else {
       await _videoPlayerPlatform.pause(_textureId);
     }
+  }
+
+  bool isLoading() {
+    if (!value.isPlaying && value.duration == null) {
+      return true;
+    }
+
+    final Duration position = value.position;
+
+    Duration? bufferedEndPosition;
+    if (value.buffered.isNotEmpty == true) {
+      bufferedEndPosition = value.buffered.last.end;
+    }
+
+    if (bufferedEndPosition != null) {
+      final difference = bufferedEndPosition - position;
+
+      if (value.isPlaying && value.isBuffering && difference.inMilliseconds < _bufferingInterval) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Future<void> _applyVolume() async {

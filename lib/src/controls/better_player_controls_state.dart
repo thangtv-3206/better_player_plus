@@ -10,8 +10,6 @@ import 'package:flutter/material.dart';
 ///Base class for both material and cupertino controls
 abstract class BetterPlayerControlsState<T extends StatefulWidget>
     extends State<T> {
-  ///Min. time of buffered video to hide loading timer (in milliseconds)
-  static const int _bufferingInterval = 20000;
 
   BetterPlayerController? get betterPlayerController;
 
@@ -182,33 +180,6 @@ abstract class BetterPlayerControlsState<T extends StatefulWidget>
         ),
       ),
     );
-  }
-
-  ///Latest value can be null
-  bool isLoading(VideoPlayerValue? latestValue) {
-    if (latestValue != null) {
-      if (!latestValue.isPlaying && latestValue.duration == null) {
-        return true;
-      }
-
-      final Duration position = latestValue.position;
-
-      Duration? bufferedEndPosition;
-      if (latestValue.buffered.isNotEmpty == true) {
-        bufferedEndPosition = latestValue.buffered.last.end;
-      }
-
-      if (bufferedEndPosition != null) {
-        final difference = bufferedEndPosition - position;
-
-        if (latestValue.isPlaying &&
-            latestValue.isBuffering &&
-            difference.inMilliseconds < _bufferingInterval) {
-          return true;
-        }
-      }
-    }
-    return false;
   }
 
   void _showSubtitlesSelectionWidget() {

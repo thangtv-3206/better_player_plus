@@ -60,7 +60,7 @@ class _LiveVideoControlsState
   }
 
   Widget _buildMainWidget() {
-    _wasLoading = isLoading(_controller?.value);
+    _wasLoading = _controller?.isLoading() ?? false;
 
     return GestureDetector(
       onTap: () {
@@ -555,7 +555,7 @@ class _LiveVideoControlsState
         if (!controlsNotVisible ||
             isVideoFinished(_controller!.value) ||
             _wasLoading ||
-            isLoading(_controller!.value)) {
+            _controller!.isLoading()) {
           setState(() {
             _latestValue = _controller!.value;
             if (isVideoFinished(_controller!.value) &&

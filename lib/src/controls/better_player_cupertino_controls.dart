@@ -83,7 +83,7 @@ class _BetterPlayerCupertinoControlsState
     const buttonPadding = 10.0;
     final isFullScreen = _betterPlayerController?.isFullScreen == true;
 
-    _wasLoading = isLoading(_latestValue);
+    _wasLoading = _controller?.isLoading() ?? false;
     final controlsColumn = Column(children: <Widget>[
       _buildTopBar(
         backgroundColor,
@@ -692,7 +692,7 @@ class _BetterPlayerCupertinoControlsState
       if (!controlsNotVisible ||
           isVideoFinished(_controller!.value) ||
           _wasLoading ||
-          isLoading(_controller!.value)) {
+          _controller!.isLoading()) {
         setState(() {
           _latestValue = _controller!.value;
           if (isVideoFinished(_latestValue)) {
