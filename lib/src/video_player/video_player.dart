@@ -474,21 +474,27 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     if (!_created || _isDisposed) {
       return;
     }
+
     _timer?.cancel();
     if (value.isPlaying) {
       await _videoPlayerPlatform.play(_textureId);
+      _timer?.cancel();
       _timer = Timer.periodic(
         const Duration(milliseconds: 300),
         (Timer timer) async {
-          if (_isDisposed) {
+          if (_isDisposed || value.isBuffering || !value.isPlaying) {
             return;
           }
-          final Duration? newPosition = await position;
-          final DateTime? newAbsolutePosition = await absolutePosition;
+
+          final futures = await Future.wait(<Future<dynamic>>[position, absolutePosition]);
+
+          final Duration? newPosition = futures[0];
+          final DateTime? newAbsolutePosition = futures[1];
           // ignore: invariant_booleans
-          if (_isDisposed) {
+          if (_isDisposed || value.isBuffering || !value.isPlaying) {
             return;
           }
+
           _updatePosition(newPosition, absolutePosition: newAbsolutePosition);
           if (_seekPosition != null && newPosition != null) {
             final difference =
@@ -565,9 +571,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     _updatePosition(position);
 
     if (isPlaying) {
-      play();
+      await play();
     } else {
-      pause();
+      await pause();
     }
   }
 
