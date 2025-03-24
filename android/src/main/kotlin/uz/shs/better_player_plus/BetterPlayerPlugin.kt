@@ -70,7 +70,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         { info ->
             pipContainer?.let { pipContainer ->
                 val currentBetterPlayer = videoPlayers.values.lastOrNull() ?: return@let
-                val playerView = pipContainer.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id())
+                val playerView = pipContainer.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id()) ?: return@let
 
                 if (info.isInPictureInPictureMode) {
                     pipContainer.isVisible = true
@@ -160,13 +160,17 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     }
 
     override fun onUserLeaveHint() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !activity!!.isInPictureInPictureMode
+            && hasPipPermission(flutterState!!.applicationContext)
+        ) {
             val currentBetterPlayer = videoPlayers.values.lastOrNull()
-            if (currentBetterPlayer != null && currentBetterPlayer.exoPlayer.isPlaying
-                && !activity!!.isInPictureInPictureMode
-                && hasPipPermission(flutterState!!.applicationContext)
-            ) {
-                enablePictureInPicture(currentBetterPlayer)
+
+            if (currentBetterPlayer != null && currentBetterPlayer.exoPlayer.isPlaying) {
+                val playerView = pipContainer?.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id())
+
+                if (playerView != null) {
+                    enablePictureInPicture(currentBetterPlayer)
+                }
             }
         }
     }
@@ -174,9 +178,16 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private val exoPlayerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                var playerView: PlayerView? = null
+                val currentBetterPlayer = videoPlayers.values.lastOrNull()
+
+                if (currentBetterPlayer != null) {
+                    playerView = pipContainer?.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id())
+                }
+
                 activity?.setPictureInPictureParams(PictureInPictureParams.Builder()
                     .setAspectRatio(Rational(16, 9))
-                    .setAutoEnterEnabled(isPlaying)
+                    .setAutoEnterEnabled(isPlaying && playerView != null)
                     .apply {
                         beforePipSourceRectHint?.let {
                             setSourceRectHint(it)
@@ -226,21 +237,23 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     customDefaultLoadControl, result
                 )
                 betterPlayer.exoPlayer.addListener(exoPlayerListener)
-                pipContainer?.addView(
-                    PlayerView(activity!!).apply {
-                        tag = handle.id()
-                        useController = false
-                    },
-                    ConstraintLayout.LayoutParams(
-                        ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
-                        ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
-                    ).apply {
-                        dimensionRatio = "16:9"
-                        endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                        startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                        topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                    }
-                )
+                if (call.argument(ENABLE_PIP_PARAMETER)!!) {
+                    pipContainer?.addView(
+                        PlayerView(activity!!).apply {
+                            tag = handle.id()
+                            useController = false
+                        },
+                        ConstraintLayout.LayoutParams(
+                            ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
+                            ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                        ).apply {
+                            dimensionRatio = "16:9"
+                            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                        }
+                    )
+                }
 
                 videoPlayers.put(handle.id(), betterPlayer)
             }
@@ -723,6 +736,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         const val HEADER_PARAMETER = "header_"
         const val FILE_PATH_PARAMETER = "filePath"
         const val ACTIVITY_NAME_PARAMETER = "activityName"
+        const val ENABLE_PIP_PARAMETER = "enablePIP"
         const val MIN_BUFFER_MS = "minBufferMs"
         const val MAX_BUFFER_MS = "maxBufferMs"
         const val BUFFER_FOR_PLAYBACK_MS = "bufferForPlaybackMs"

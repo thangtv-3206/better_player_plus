@@ -249,6 +249,7 @@ class BetterPlayerController with WidgetsBindingObserver {
     ///Build videoPlayerController if null
     if (videoPlayerController == null) {
       videoPlayerController = VideoPlayerController(
+        enablePIP: betterPlayerConfiguration.enablePIP,
           bufferingConfiguration:
               betterPlayerDataSource.bufferingConfiguration);
       videoPlayerController?.addListener(_onVideoPlayerChanged);

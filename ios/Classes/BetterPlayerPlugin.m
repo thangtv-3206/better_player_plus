@@ -296,7 +296,9 @@ bool _remoteCommandsInitialized = false;
         [_players removeAllObjects];
         result(nil);
     } else if ([@"create" isEqualToString:call.method]) {
-        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero];
+        NSDictionary* argsMap = call.arguments;
+        BOOL enablePIP = [[argsMap objectForKey:@"enablePIP"] boolValue];
+        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero :enablePIP];
         [self onPlayerSetup:player result:result];
     } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]) {
         result([NSNumber numberWithBool:[self isPictureInPictureSupported]]);

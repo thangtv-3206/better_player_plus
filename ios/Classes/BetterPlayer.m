@@ -11,9 +11,10 @@ static void* playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
 static void* presentationSizeContext = &presentationSizeContext;
 
 @implementation BetterPlayer
-- (instancetype)initWithFrame:(CGRect)frame {
+- (instancetype)initWithFrame:(CGRect)frame :(bool)enablePIP {
     self = [super init];
     NSAssert(self, @"super init cannot be nil");
+    _enablePIP = enablePIP;
     _isInitialized = false;
     _isPlaying = false;
     _disposed = false;
@@ -31,7 +32,7 @@ static void* presentationSizeContext = &presentationSizeContext;
     playerView.player = _player;
     playerView.playerLayer.needsDisplayOnBoundsChange = YES;
 
-    if ([AVPictureInPictureController isPictureInPictureSupported]) {
+    if (_enablePIP && [AVPictureInPictureController isPictureInPictureSupported]) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             if (!_pipController) {
                 _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:playerView.playerLayer];

@@ -541,8 +541,12 @@ internal class BetterPlayer(
     }
 
     fun play() {
-        exoPlayer?.playWhenReady = true
-        exoPlayer?.seekToDefaultPosition()
+        exoPlayer?.let {
+            it.playWhenReady = true
+            if (it.isCurrentMediaItemLive) {
+                it.seekToDefaultPosition()
+            }
+        }
     }
 
     fun pause() {

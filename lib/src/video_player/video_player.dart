@@ -169,10 +169,12 @@ class VideoPlayerValue {
 ///
 /// After [dispose] all further calls are ignored.
 class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
+  final bool enablePIP;
   final BetterPlayerBufferingConfiguration bufferingConfiguration;
 
   /// Constructs a [VideoPlayerController] and creates video controller on platform side.
   VideoPlayerController({
+    this.enablePIP = true,
     this.bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
     bool autoCreate = true,
   }) : super(VideoPlayerValue(duration: null)) {
@@ -202,6 +204,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   /// Attempts to open the given [dataSource] and load metadata about the video.
   Future<void> _create() async {
     _textureId = await _videoPlayerPlatform.create(
+      enablePIP: enablePIP,
       bufferingConfiguration: bufferingConfiguration,
     );
     _creatingCompleter.complete(null);

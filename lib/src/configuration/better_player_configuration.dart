@@ -41,6 +41,10 @@ class BetterPlayerConfiguration {
   /// A widget which is placed between the video and the controls
   final Widget? overlay;
 
+  final bool enablePIP;
+
+  final bool enterFullScreenWhenRotate;
+
   /// Defines if the player will start in fullscreen when play is pressed
   final bool fullScreenByDefault;
 
@@ -112,6 +116,8 @@ class BetterPlayerConfiguration {
     this.autoPlay = false,
     this.startAt,
     this.looping = false,
+    this.enablePIP = true,
+    this.enterFullScreenWhenRotate = true,
     this.fullScreenByDefault = false,
     this.placeholder,
     this.showPlaceholderUntilPlay = false,
@@ -147,6 +153,8 @@ class BetterPlayerConfiguration {
     bool? autoPlay,
     Duration? startAt,
     bool? looping,
+    bool? enablePIP,
+    bool? enterFullScreenWhenRotate,
     bool? fullScreenByDefault,
     Widget? placeholder,
     bool? showPlaceholderUntilPlay,
@@ -176,6 +184,8 @@ class BetterPlayerConfiguration {
       autoPlay: autoPlay ?? this.autoPlay,
       startAt: startAt ?? this.startAt,
       looping: looping ?? this.looping,
+      enablePIP: enablePIP ?? this.enablePIP,
+      enterFullScreenWhenRotate: enterFullScreenWhenRotate ?? this.enterFullScreenWhenRotate,
       fullScreenByDefault: fullScreenByDefault ?? this.fullScreenByDefault,
       placeholder: placeholder ?? this.placeholder,
       showPlaceholderUntilPlay:

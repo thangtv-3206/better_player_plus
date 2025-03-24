@@ -31,6 +31,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<int?> create({
+    bool enablePIP = true,
     BetterPlayerBufferingConfiguration? bufferingConfiguration,
   }) async {
     late final Map<String, dynamic>? response;
@@ -40,6 +41,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       final responseLinkedHashMap = await _channel.invokeMethod<Map?>(
         'create',
         <String, dynamic>{
+          'enablePIP': enablePIP,
           'minBufferMs': bufferingConfiguration.minBufferMs,
           'maxBufferMs': bufferingConfiguration.maxBufferMs,
           'bufferForPlaybackMs': bufferingConfiguration.bufferForPlaybackMs,

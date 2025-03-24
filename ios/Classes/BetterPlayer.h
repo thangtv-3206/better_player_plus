@@ -17,6 +17,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BetterPlayer : NSObject <FlutterPlatformView, FlutterStreamHandler, AVPictureInPictureControllerDelegate>
 @property(readonly, nonatomic) AVPlayer *player;
+@property(nonatomic, readonly) bool enablePIP;
 @property(nonatomic) AVPictureInPictureController *pipController;
 @property(nonatomic, readonly) bool isRestorePip;
 @property(nonatomic) AVPictureInPictureControllerContentSource *_originPipContentSource;
@@ -44,7 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)updatePlayingState;
 - (int64_t)duration;
 - (int64_t)position;
-- (instancetype)initWithFrame:(CGRect)frame;
+- (instancetype)initWithFrame:(CGRect)frame :(bool)enablePIP;
 - (void)setMixWithOthers:(bool)mixWithOthers;
 - (void)seekTo:(int)location;
 - (void)setDataSourceAsset:(NSString *)asset withKey:(NSString *)key withCertificateUrl:(NSString *)certificateUrl withLicenseUrl:(NSString *)licenseUrl cacheKey:(NSString *)cacheKey cacheManager:(CacheManager *)cacheManager overriddenDuration:(int)overriddenDuration;

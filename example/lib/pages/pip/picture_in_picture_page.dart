@@ -24,6 +24,8 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
     _scrollController = ScrollController();
     WidgetsBinding.instance.addObserver(this);
     BetterPlayerConfiguration betterPlayerConfiguration = BetterPlayerConfiguration(
+      enablePIP: true,
+      enterFullScreenWhenRotate: true,
       aspectRatio: 16 / 9,
       fit: BoxFit.contain,
       autoPlay: true,

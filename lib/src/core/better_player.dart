@@ -54,7 +54,7 @@ class _BetterPlayerState extends State<BetterPlayer> {
   ///State of navigator on widget created
   late NavigatorState? _navigatorState;
 
-  late StreamSubscription<DeviceOrientation> _deviceOrientationSubscription;
+  StreamSubscription<DeviceOrientation>? _deviceOrientationSubscription;
 
   bool _isFullScreenByRotate = false;
 
@@ -67,25 +67,24 @@ class _BetterPlayerState extends State<BetterPlayer> {
   @override
   void initState() {
     super.initState();
-    _deviceOrientationSubscription =
-        deviceOrientationStream.skip(1).listen((deviceOrientation) {
-      var controller = widget.controller;
-      if (!controller.isPlayerVisible) return;
-      if (!_isFullScreenByRotate &&
-          controller.controlsEnabled &&
-          !controller.isFullScreen &&
-          [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
-              .contains(deviceOrientation)) {
-        _isFullScreenByRotate = true;
-        controller.enterFullScreen();
-      } else if (_isFullScreenByRotate &&
-          controller.isFullScreen &&
-          deviceOrientation == DeviceOrientation.portraitUp) {
-        SystemChrome.setPreferredOrientations(
-            _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
-        controller.exitFullScreen();
-      }
-    });
+    if (_betterPlayerConfiguration.enterFullScreenWhenRotate == true) {
+      _deviceOrientationSubscription = deviceOrientationStream.skip(1).listen((deviceOrientation) {
+        var controller = widget.controller;
+        if (!controller.isPlayerVisible) return;
+        if (!_isFullScreenByRotate &&
+            controller.controlsEnabled &&
+            !controller.isFullScreen &&
+            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(deviceOrientation)) {
+          _isFullScreenByRotate = true;
+          controller.enterFullScreen();
+        } else if (_isFullScreenByRotate &&
+            controller.isFullScreen &&
+            deviceOrientation == DeviceOrientation.portraitUp) {
+          SystemChrome.setPreferredOrientations(_betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
+          controller.exitFullScreen();
+        }
+      });
+    }
   }
 
   @override
@@ -136,7 +135,7 @@ class _BetterPlayerState extends State<BetterPlayer> {
     widget.controller.dispose();
     VisibilityDetectorController.instance
         .forget(Key("${widget.controller.hashCode}_key"));
-    _deviceOrientationSubscription.cancel();
+    _deviceOrientationSubscription?.cancel();
     super.dispose();
   }
 
