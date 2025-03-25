@@ -484,7 +484,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       _timer = Timer.periodic(
         const Duration(milliseconds: 300),
         (Timer timer) async {
-          if (_isDisposed || isLoading()) {
+          if (_isDisposed || isLoading() || !value.isPlaying) {
             return;
           }
 
@@ -493,7 +493,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           final Duration? newPosition = futures[0];
           final DateTime? newAbsolutePosition = futures[1];
           // ignore: invariant_booleans
-          if (_isDisposed || isLoading()) {
+          if (_isDisposed || isLoading() || !value.isPlaying) {
             return;
           }
 
