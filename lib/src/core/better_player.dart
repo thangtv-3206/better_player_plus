@@ -68,20 +68,25 @@ class _BetterPlayerState extends State<BetterPlayer> {
   void initState() {
     super.initState();
     if (_betterPlayerConfiguration.enterFullScreenWhenRotate == true) {
-      _deviceOrientationSubscription = deviceOrientationStream.skip(1).listen((deviceOrientation) {
+      _deviceOrientationSubscription =
+          deviceOrientationStream.skip(1).listen((deviceOrientation) {
         final controller = widget.controller;
-        if (controller.isVideoInitialized() != true || !controller.isPlayerVisible || controller.isPipMode() == true) return;
+        if (controller.isVideoInitialized() != true ||
+            !controller.isPlayerVisible ||
+            controller.isPipMode() == true) return;
 
         if (!_isFullScreenByRotate &&
             controller.controlsEnabled &&
             !controller.isFullScreen &&
-            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(deviceOrientation)) {
+            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
+                .contains(deviceOrientation)) {
           _isFullScreenByRotate = true;
           controller.enterFullScreen();
         } else if (_isFullScreenByRotate &&
             controller.isFullScreen &&
             deviceOrientation == DeviceOrientation.portraitUp) {
-          SystemChrome.setPreferredOrientations(_betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
+          SystemChrome.setPreferredOrientations(
+              _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
           controller.exitFullScreen();
         }
       });
@@ -246,14 +251,131 @@ class _BetterPlayerState extends State<BetterPlayer> {
   }
 
   Widget _buildPlayer() {
-    return VisibilityDetector(
-      key: Key("${widget.controller.hashCode}_key"),
-      onVisibilityChanged: (VisibilityInfo info) =>
-          widget.controller.onPlayerVisibilityChanged(info.visibleFraction),
+    return _EnhancedVisibilityDetector(
+      controller: widget.controller,
       child: BetterPlayerWithControls(
         controller: widget.controller,
       ),
     );
+  }
+}
+
+class _EnhancedVisibilityDetector extends StatefulWidget {
+  final BetterPlayerController controller;
+  final Widget child;
+
+  const _EnhancedVisibilityDetector({
+    required this.controller,
+    required this.child,
+  });
+
+  @override
+  _EnhancedVisibilityDetectorState createState() =>
+      _EnhancedVisibilityDetectorState();
+}
+
+class _EnhancedVisibilityDetectorState extends State<_EnhancedVisibilityDetector> {
+  final GlobalKey _key = GlobalKey();
+  double _lastVisibleFraction = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkVisibility();
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: _key,
+      child: VisibilityDetector(
+        key: Key("${widget.controller.hashCode}_key"),
+        onVisibilityChanged: (VisibilityInfo info) {
+          _updateVisibilityWithStabilization(info.visibleFraction);
+        },
+        child: widget.child,
+      ),
+    );
+  }
+
+  void _checkVisibility({
+    bool forceCheck = false,
+    bool isStabilizing = false,
+  }) {
+    if (!mounted) return;
+
+    final BuildContext? context = _key.currentContext;
+    if (context == null) return;
+
+    final RenderObject? renderObject = context.findRenderObject();
+    if (renderObject == null || !renderObject.attached) {
+      _updateVisibilityWithStabilization(0.0);
+      return;
+    }
+
+    final RenderBox box = renderObject as RenderBox;
+    final Offset position = box.localToGlobal(Offset.zero);
+    final Size size = box.size;
+
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double screenWidth = MediaQuery.of(context).size.width;
+
+    // Calculate the threshold for visibility
+    double visibilityThreshold = forceCheck ? 0.5 : (isStabilizing ? 0.3 : 0.2);
+    
+    // Check if the widget is completely out of the screen
+    if (position.dy + size.height * visibilityThreshold <= 0 ||
+        position.dy >= screenHeight - size.height * visibilityThreshold ||
+        position.dx + size.width <= 0 ||
+        position.dx >= screenWidth) {
+      _updateVisibilityWithStabilization(0.0);
+      return;
+    }
+
+    double visibleTop = position.dy < 0 ? 0 : position.dy;
+    double visibleBottom = (position.dy + size.height) > screenHeight
+        ? screenHeight
+        : (position.dy + size.height);
+    double visibleLeft = position.dx < 0 ? 0 : position.dx;
+    double visibleRight = (position.dx + size.width) > screenWidth
+        ? screenWidth
+        : (position.dx + size.width);
+
+    double visibleHeight = visibleBottom - visibleTop;
+    double visibleWidth = visibleRight - visibleLeft;
+    double visibleArea = visibleHeight * visibleWidth;
+    double totalArea = size.width * size.height;
+
+    double visibleFraction = visibleArea / totalArea;
+
+    // If the visible fraction is too small, set it to 0
+    if (visibleFraction < 0.05) {
+      _updateVisibilityWithStabilization(0.0);
+    } else {
+      _updateVisibilityWithStabilization(visibleFraction.clamp(0.0, 1.0));
+    }
+  }
+
+  void _updateVisibilityWithStabilization(double visibleFraction) {
+    // Only update when there is a significant change
+    if ((_lastVisibleFraction - visibleFraction).abs() > 0.02) {
+      // Check if the visible fraction is close to 0 but not exactly 0
+      if (visibleFraction > 0 && visibleFraction < 0.1) {
+        // Do nothing with values ​​close to 0 but different from 0 to avoid flickering
+      } else {
+        _lastVisibleFraction = visibleFraction;
+        widget.controller.onPlayerVisibilityChanged(visibleFraction);
+      }
+    }
   }
 }
 

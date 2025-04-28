@@ -249,7 +249,7 @@ class BetterPlayerController with WidgetsBindingObserver {
     ///Build videoPlayerController if null
     if (videoPlayerController == null) {
       videoPlayerController = VideoPlayerController(
-        enablePIP: betterPlayerConfiguration.enablePIP,
+          enablePIP: betterPlayerConfiguration.enablePIP,
           bufferingConfiguration:
               betterPlayerDataSource.bufferingConfiguration);
       videoPlayerController?.addListener(_onVideoPlayerChanged);
@@ -274,29 +274,39 @@ class BetterPlayerController with WidgetsBindingObserver {
       _setupSubtitles();
     }
 
-    _betterPlayerAsmsTrack = await betterPlayerAsmsTrackFuture ?? BetterPlayerAsmsTrack.defaultTrack();
+    _betterPlayerAsmsTrack = await betterPlayerAsmsTrackFuture ??
+        BetterPlayerAsmsTrack.defaultTrack();
 
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
   }
 
-  void setupFromOtherController(BetterPlayerController otherBetterPlayerController) {
-    final betterPlayerDataSource = otherBetterPlayerController.betterPlayerDataSource;
+  void setupFromOtherController(
+      BetterPlayerController otherBetterPlayerController) {
+    final betterPlayerDataSource =
+        otherBetterPlayerController.betterPlayerDataSource;
     if (betterPlayerDataSource == null) return;
 
-    postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource, parameters: <String, dynamic>{
-      _dataSourceParameter: betterPlayerDataSource,
-    }));
+    postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource,
+        parameters: <String, dynamic>{
+          _dataSourceParameter: betterPlayerDataSource,
+        }));
     _postControllerEvent(BetterPlayerControllerEvent.setupDataSource);
     _betterPlayerDataSource = betterPlayerDataSource;
-    _hasCurrentDataSourceStarted = otherBetterPlayerController.hasCurrentDataSourceStarted;
-    _hasCurrentDataSourceInitialized = otherBetterPlayerController._hasCurrentDataSourceInitialized;
-    _betterPlayerAsmsTracks = otherBetterPlayerController.betterPlayerAsmsTracks;
+    _hasCurrentDataSourceStarted =
+        otherBetterPlayerController.hasCurrentDataSourceStarted;
+    _hasCurrentDataSourceInitialized =
+        otherBetterPlayerController._hasCurrentDataSourceInitialized;
+    _betterPlayerAsmsTracks =
+        otherBetterPlayerController.betterPlayerAsmsTracks;
     _betterPlayerAsmsTrack = otherBetterPlayerController.betterPlayerAsmsTrack;
     _betterPlayerSubtitlesSourceList.clear();
-    _betterPlayerSubtitlesSourceList.addAll(otherBetterPlayerController.betterPlayerSubtitlesSourceList);
-    _betterPlayerAsmsAudioTracks = otherBetterPlayerController.betterPlayerAsmsAudioTracks;
-    _betterPlayerAsmsAudioTrack = otherBetterPlayerController.betterPlayerAsmsAudioTrack;
+    _betterPlayerSubtitlesSourceList
+        .addAll(otherBetterPlayerController.betterPlayerSubtitlesSourceList);
+    _betterPlayerAsmsAudioTracks =
+        otherBetterPlayerController.betterPlayerAsmsAudioTracks;
+    _betterPlayerAsmsAudioTrack =
+        otherBetterPlayerController.betterPlayerAsmsAudioTrack;
 
     videoPlayerController = otherBetterPlayerController.videoPlayerController;
     otherBetterPlayerController.detachVideoPlayerController();
@@ -307,12 +317,15 @@ class BetterPlayerController with WidgetsBindingObserver {
     }
 
     _setupSubtitles();
-    setupSubtitleSource(_betterPlayerSubtitlesSourceList.last, sourceInitialize: true);
+    setupSubtitleSource(_betterPlayerSubtitlesSourceList.last,
+        sourceInitialize: true);
 
     _videoEventStreamSubscription?.cancel();
     _videoEventStreamSubscription = null;
 
-    _videoEventStreamSubscription = videoPlayerController?.videoEventStreamController.stream.listen(_handleVideoEvent);
+    _videoEventStreamSubscription = videoPlayerController
+        ?.videoEventStreamController.stream
+        .listen(_handleVideoEvent);
   }
 
   ///Configure subtitles based on subtitles source.
@@ -341,18 +354,23 @@ class BetterPlayerController with WidgetsBindingObserver {
   ///master playlist.
   Future _setupAsmsDataSource() async {
     final shouldLoadAsmsTracks = _betterPlayerDataSource?.useAsmsTracks == true;
-    final shouldLoadAsmsSubtitles = betterPlayerDataSource?.useAsmsSubtitles == true;
+    final shouldLoadAsmsSubtitles =
+        betterPlayerDataSource?.useAsmsSubtitles == true;
     final shouldLoadAsmsAudioTracks =
-        betterPlayerDataSource?.useAsmsAudioTracks == true && _isDataSourceAsms(betterPlayerDataSource!);
+        betterPlayerDataSource?.useAsmsAudioTracks == true &&
+            _isDataSourceAsms(betterPlayerDataSource!);
 
-    if (shouldLoadAsmsTracks || shouldLoadAsmsSubtitles || shouldLoadAsmsAudioTracks) {
+    if (shouldLoadAsmsTracks ||
+        shouldLoadAsmsSubtitles ||
+        shouldLoadAsmsAudioTracks) {
       final String? data = await BetterPlayerAsmsUtils.getDataFromUrl(
         betterPlayerDataSource!.url,
         _getHeaders(),
       );
       if (data != null) {
         final BetterPlayerAsmsDataHolder _response =
-        await BetterPlayerAsmsUtils.parse(data, betterPlayerDataSource!.url);
+            await BetterPlayerAsmsUtils.parse(
+                data, betterPlayerDataSource!.url);
 
         /// Load tracks
         if (shouldLoadAsmsTracks) {
@@ -661,8 +679,7 @@ class BetterPlayerController with WidgetsBindingObserver {
       throw StateError("The data source has not been initialized");
     }
 
-    if (_appLifecycleState != AppLifecycleState.paused ||
-        isPipMode() == true) {
+    if (_appLifecycleState != AppLifecycleState.paused || isPipMode() == true) {
       await videoPlayerController!.play();
       _hasCurrentDataSourceStarted = true;
       _wasPlayingBeforePause = null;
@@ -1083,7 +1100,8 @@ class BetterPlayerController with WidgetsBindingObserver {
     }
 
     if (Platform.isIOS) {
-      if (appLifecycleState == AppLifecycleState.resumed && (isPipMode() ?? false)) {
+      if (appLifecycleState == AppLifecycleState.resumed &&
+          (isPipMode() ?? false)) {
         disablePictureInPicture();
       }
     }
@@ -1115,7 +1133,8 @@ class BetterPlayerController with WidgetsBindingObserver {
     return _overriddenFit ?? betterPlayerConfiguration.fit;
   }
 
-  Future<void>? resetToOriginPipContentSource({bool resetOrigin = false}) async {
+  Future<void>? resetToOriginPipContentSource(
+      {bool resetOrigin = false}) async {
     if (Platform.isIOS) {
       await videoPlayerController?.resetToOriginPipContentSource(resetOrigin);
     }
@@ -1123,8 +1142,10 @@ class BetterPlayerController with WidgetsBindingObserver {
 
   Future<void>? setBeforePipSourceRectHint({GlobalKey? playerKey}) async {
     if (Platform.isAndroid) {
-      final playerContext = playerKey?.currentContext ?? betterPlayerGlobalKey?.currentContext;
-      final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
+      final playerContext =
+          playerKey?.currentContext ?? betterPlayerGlobalKey?.currentContext;
+      final RenderBox? renderBox =
+          playerContext?.findRenderObject() as RenderBox?;
       if (renderBox == null) {
         BetterPlayerUtils.log("RenderBox is null. Did you provide valid global"
             " key?");
@@ -1150,9 +1171,11 @@ class BetterPlayerController with WidgetsBindingObserver {
     }
 
     final playerContext = betterPlayerGlobalKey.currentContext;
-    final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
+    final RenderBox? renderBox =
+        playerContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) {
-      BetterPlayerUtils.log("Can't show PiP. RenderBox is null. Did you provide valid global"
+      BetterPlayerUtils.log(
+          "Can't show PiP. RenderBox is null. Did you provide valid global"
           " key?");
       return;
     }
