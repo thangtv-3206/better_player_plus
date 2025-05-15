@@ -1086,11 +1086,21 @@ class BetterPlayerController with WidgetsBindingObserver {
   void setAppLifecycleState(AppLifecycleState appLifecycleState) async {
     if (_isAutomaticPlayPauseHandled()) {
       _appLifecycleState = appLifecycleState;
+
+      if (Platform.isAndroid) {
+        if (isPipMode() == true && appLifecycleState == AppLifecycleState.inactive) {
+          if (_wasPlayingBeforePause == true && isPlayerVisible) {
+            play();
+          }
+        }
+      }
+
       if (appLifecycleState == AppLifecycleState.resumed) {
         if (_wasPlayingBeforePause == true && isPlayerVisible) {
           play();
         }
       }
+
       if (appLifecycleState == AppLifecycleState.paused) {
         if (Platform.isAndroid || isPipMode() != true) {
           _wasPlayingBeforePause ??= isPlaying();

@@ -177,25 +177,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
 
     private val exoPlayerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                var playerView: PlayerView? = null
-                val currentBetterPlayer = videoPlayers.values.lastOrNull()
-
-                if (currentBetterPlayer != null) {
-                    playerView = pipContainer?.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id())
-                }
-
-                activity?.setPictureInPictureParams(PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(16, 9))
-                    .setAutoEnterEnabled(isPlaying && playerView != null)
-                    .apply {
-                        beforePipSourceRectHint?.let {
-                            setSourceRectHint(it)
-                        }
-                    }
-                    .build()
-                )
-            }
+            setPictureInPictureParams()
         }
     }
 
@@ -595,17 +577,32 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         val width = (call.argument<Double>(WIDTH_PARAMETER)!! * density).toInt()
         val height = (call.argument<Double>(HEIGHT_PARAMETER)!! * density).toInt()
         beforePipSourceRectHint = Rect(left, top, left + width, top + height)
+        setPictureInPictureParams()
+    }
+
+    private fun setPictureInPictureParams() {
+        if (isPictureInPictureSupported()) {
+            activity?.setPictureInPictureParams(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .apply {
+                        beforePipSourceRectHint?.let {
+                            setSourceRectHint(it)
+                        }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            setAutoEnterEnabled(videoPlayers.values.lastOrNull()?.exoPlayer?.isPlaying == true)
+                        }
+                    }
+                    .build()
+            )
+        }
     }
 
     private fun enablePictureInPicture(player: BetterPlayer) {
         if (isPictureInPictureSupported()) {
             activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
                 .setAspectRatio(Rational(16, 9))
-                .apply {
-                    beforePipSourceRectHint?.let {
-                        setSourceRectHint(it)
-                    }
-                }
                 .build())
         }
     }
