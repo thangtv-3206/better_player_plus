@@ -1089,14 +1089,14 @@ class BetterPlayerController with WidgetsBindingObserver {
 
       if (Platform.isAndroid) {
         if (isPipMode() == true && appLifecycleState == AppLifecycleState.inactive) {
-          if (_wasPlayingBeforePause == true && isPlayerVisible) {
+          if (_wasPlayingBeforePause == true) {
             play();
           }
         }
       }
 
       if (appLifecycleState == AppLifecycleState.resumed) {
-        if (_wasPlayingBeforePause == true && isPlayerVisible) {
+        if (_wasPlayingBeforePause == true) {
           play();
         }
       }
