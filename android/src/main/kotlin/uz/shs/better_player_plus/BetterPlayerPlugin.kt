@@ -128,31 +128,20 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         flutterState = null
     }
 
-    override fun onAttachedToActivity(activityPluginBinding: ActivityPluginBinding) {
-        this.activityPluginBinding = activityPluginBinding
-        activity = activityPluginBinding.activity
-        activityPluginBinding.addOnUserLeaveHintListener(this)
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        this.activityPluginBinding = binding
+        activity = binding.activity
+        binding.addOnUserLeaveHintListener(this)
         (activity as? ComponentActivity)?.addOnPictureInPictureModeChangedListener(mOnPictureInPictureModeChangedListener)
-        pipContainer = activity?.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
-        if (pipContainer == null) {
-            pipContainer = ConstraintLayout(activity!!).apply {
-                tag = PIP_CONTAINER
-                isVisible = false
-                setBackgroundColor(Color.WHITE)
-            }
-            activity?.addContentView(
-                pipContainer,
-                ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            )
-        }
     }
 
-    override fun onDetachedFromActivityForConfigChanges() {}
+    override fun onDetachedFromActivityForConfigChanges() {
+        onDetachedFromActivity()
+    }
 
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {}
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        onAttachedToActivity(binding)
+    }
 
     override fun onDetachedFromActivity() {
         activityPluginBinding?.removeOnUserLeaveHintListener(this)
@@ -220,6 +209,22 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 )
                 betterPlayer.exoPlayer.addListener(exoPlayerListener)
                 if (call.argument(ENABLE_PIP_PARAMETER)!!) {
+                    pipContainer = activity!!.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
+                    if (pipContainer == null) {
+                        pipContainer = ConstraintLayout(activity!!).apply {
+                            tag = PIP_CONTAINER
+                            isVisible = false
+                            setBackgroundColor(Color.WHITE)
+                        }
+                        activity!!.addContentView(
+                            pipContainer,
+                            ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                        )
+                    }
+
                     pipContainer?.addView(
                         PlayerView(activity!!).apply {
                             tag = handle.id()
