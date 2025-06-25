@@ -617,10 +617,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (void)gotoBackgroundWithPIP {
     [self willStartPictureInPicture:true];
-    if (_pipController.canStartPictureInPictureAutomaticallyFromInline == YES) {
-        [_pipController invalidatePlaybackState];
-        [[UIApplication sharedApplication] performSelector:@selector(suspend)];
-    }
+    [self setPictureInPicture:true];
+    [[UIApplication sharedApplication] performSelector:@selector(suspend)];
+    [_pipController invalidatePlaybackState];
 }
 
 - (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {

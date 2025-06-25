@@ -9,8 +9,8 @@ import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Rect
 import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -18,13 +18,11 @@ import android.util.ArrayMap
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
-import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.postDelayed
 import androidx.core.app.PictureInPictureModeChangedInfo
-import androidx.core.view.isVisible
+import androidx.core.view.postDelayed
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
@@ -41,12 +39,6 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.PluginRegistry
 import io.flutter.view.TextureRegistry
 import uz.shs.better_player_plus.BetterPlayerCache.releaseCache
-import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.BITRATE_PARAMETER
-import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.HEIGHT_PARAMETER
-import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.LEFT_PARAMETER
-import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.TAG
-import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.TOP_PARAMETER
-import uz.shs.better_player_plus.BetterPlayerPlugin.Companion.WIDTH_PARAMETER
 import java.lang.Exception
 import java.util.HashMap
 
@@ -65,30 +57,48 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private var activityPluginBinding: ActivityPluginBinding? = null
     private var activity: Activity? = null
     private var beforePipSourceRectHint: Rect? = null
-    private var pipContainer: ViewGroup? = null
     private val mOnPictureInPictureModeChangedListener: (PictureInPictureModeChangedInfo) -> Unit =
         { info ->
-            pipContainer?.let { pipContainer ->
-                val currentBetterPlayer = videoPlayers.values.lastOrNull() ?: return@let
-                val playerView = pipContainer.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id()) ?: return@let
-
+            val currentBetterPlayer = videoPlayers.values.lastOrNull()
+            if (currentBetterPlayer != null) {
                 if (info.isInPictureInPictureMode) {
-                    pipContainer.isVisible = true
-                    playerView.isVisible = true
-                    playerView.player = currentBetterPlayer.exoPlayer
+                    activity!!.addContentView(
+                        ConstraintLayout(activity!!).apply {
+                            tag = PIP_CONTAINER
+                            setBackgroundColor(Color.WHITE)
+                            addView(
+                                PlayerView(activity!!).apply {
+                                    tag = currentBetterPlayer.textureEntry.id()
+                                    useController = false
+                                    player = currentBetterPlayer.exoPlayer
+                                },
+                                ConstraintLayout.LayoutParams(
+                                    ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
+                                    ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                                ).apply {
+                                    dimensionRatio = "16:9"
+                                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                                }
+                            )
+                        },
+                        ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    )
                     currentBetterPlayer.onPictureInPictureStatusChanged(true)
                 } else {
+                    val pipContainer = activity!!.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
                     beforePipSourceRectHint?.top?.let { top ->
-                        pipContainer.setPadding(0, top, 0, 0)
+                        pipContainer?.setPadding(0, top, 0, 0)
                     }
-                    pipContainer.postDelayed(750) {
-                        playerView.player = null
+                    activity!!.window?.decorView?.postDelayed(750) {
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
-                        playerView.isVisible = false
                         currentBetterPlayer.onPictureInPictureStatusChanged(false)
                         currentBetterPlayer.disposeMediaSession()
-                        pipContainer.setPadding(0, 0, 0, 0)
-                        pipContainer.isVisible = false
+                        (pipContainer?.parent as ViewGroup)?.removeView(pipContainer)
                     }
                 }
             }
@@ -132,7 +142,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         this.activityPluginBinding = binding
         activity = binding.activity
         binding.addOnUserLeaveHintListener(this)
-        (activity as? ComponentActivity)?.addOnPictureInPictureModeChangedListener(mOnPictureInPictureModeChangedListener)
+        (activity as? ComponentActivity)?.addOnPictureInPictureModeChangedListener(
+            mOnPictureInPictureModeChangedListener
+        )
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -145,20 +157,18 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
 
     override fun onDetachedFromActivity() {
         activityPluginBinding?.removeOnUserLeaveHintListener(this)
-        (activity as? ComponentActivity)?.removeOnPictureInPictureModeChangedListener(mOnPictureInPictureModeChangedListener)
+        (activity as? ComponentActivity)?.removeOnPictureInPictureModeChangedListener(
+            mOnPictureInPictureModeChangedListener
+        )
     }
 
     override fun onUserLeaveHint() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !activity!!.isInPictureInPictureMode
             && hasPipPermission(flutterState!!.applicationContext)
         ) {
-            val currentBetterPlayer = videoPlayers.values.lastOrNull()
-
-            if (currentBetterPlayer != null && currentBetterPlayer.exoPlayer.isPlaying) {
-                val playerView = pipContainer?.findViewWithTag<PlayerView>(currentBetterPlayer.textureEntry.id())
-
-                if (playerView != null) {
-                    enablePictureInPicture(currentBetterPlayer)
+            videoPlayers.values.lastOrNull()?.let {
+                if (it.exoPlayer.isPlaying) {
+                    enablePictureInPicture()
                 }
             }
         }
@@ -171,7 +181,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     }
 
     private fun disposeAllPlayers() {
-        pipContainer?.removeAllViews()
         for (i in 0 until videoPlayers.size) {
             videoPlayers.valueAt(i).dispose()
         }
@@ -208,40 +217,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     customDefaultLoadControl, result
                 )
                 betterPlayer.exoPlayer.addListener(exoPlayerListener)
-                if (call.argument(ENABLE_PIP_PARAMETER)!!) {
-                    pipContainer = activity!!.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
-                    if (pipContainer == null) {
-                        pipContainer = ConstraintLayout(activity!!).apply {
-                            tag = PIP_CONTAINER
-                            isVisible = false
-                            setBackgroundColor(Color.WHITE)
-                        }
-                        activity!!.addContentView(
-                            pipContainer,
-                            ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT
-                            )
-                        )
-                    }
-
-                    pipContainer?.addView(
-                        PlayerView(activity!!).apply {
-                            tag = handle.id()
-                            useController = false
-                        },
-                        ConstraintLayout.LayoutParams(
-                            ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
-                            ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
-                        ).apply {
-                            dimensionRatio = "16:9"
-                            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
-                            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                        }
-                    )
-                }
-
                 videoPlayers.put(handle.id(), betterPlayer)
             }
 
@@ -336,7 +311,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
 
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
                 setBeforePipSourceRectHint(call)
-                enablePictureInPicture(player)
+                enablePictureInPicture()
                 result.success(null)
             }
 
@@ -604,11 +579,13 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         }
     }
 
-    private fun enablePictureInPicture(player: BetterPlayer) {
+    private fun enablePictureInPicture() {
         if (isPictureInPictureSupported()) {
-            activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
-                .setAspectRatio(Rational(16, 9))
-                .build())
+            activity!!.enterPictureInPictureMode(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    .build()
+            )
         }
     }
 
@@ -660,11 +637,6 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
 
     private fun dispose(player: BetterPlayer, textureId: Long) {
         player.exoPlayer.removeListener(exoPlayerListener)
-        pipContainer?.let { parent ->
-            parent.findViewWithTag<View>(textureId)?.let {
-                parent.removeView(it)
-            }
-        }
         player.dispose()
         videoPlayers.remove(textureId)
         dataSources.remove(textureId)
