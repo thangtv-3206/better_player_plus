@@ -616,14 +616,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)gotoBackgroundWithPIP {
+    [self setPictureInPicture:true];
+    [_pipController invalidatePlaybackState];
     [self willStartPictureInPicture:true];
     [[UIApplication sharedApplication] performSelector:@selector(suspend)];
-    [_pipController invalidatePlaybackState];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (![_pipController isPictureInPictureActive]) {
-            [self setPictureInPicture:true];
-        }
-    });
 }
 
 - (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
