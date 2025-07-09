@@ -240,7 +240,7 @@ class _LiveVideoControlsState
           if (hasPipPermission) {
             changePlayerControlsNotVisible(true);
             if (!_controller!.value.isPlaying) {
-              await _betterPlayerController!.play();
+              _betterPlayerController!.play();
             }
             betterPlayerController!.enablePictureInPicture(
                 betterPlayerController!.betterPlayerGlobalKey!);
