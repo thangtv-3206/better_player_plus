@@ -416,6 +416,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       duration: null,
       isLooping: value.isLooping,
       volume: value.volume,
+      isPip: value.isPip,
     );
 
     if (!_creatingCompleter.isCompleted) await _creatingCompleter.future;

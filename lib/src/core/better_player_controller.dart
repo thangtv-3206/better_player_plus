@@ -1090,7 +1090,11 @@ class BetterPlayerController with WidgetsBindingObserver {
       if (Platform.isAndroid) {
         if (isPipMode() == true && appLifecycleState == AppLifecycleState.inactive) {
           if (_wasPlayingBeforePause == true) {
-            play();
+            if (videoPlayerController?.value.hasError ?? false) {
+              retryDataSource();
+            } else {
+              play();
+            }
           }
         }
       }

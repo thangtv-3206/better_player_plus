@@ -13,6 +13,8 @@ import android.graphics.Color
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
+import android.widget.ProgressBar
+import android.view.View
 import android.provider.Settings
 import android.util.ArrayMap
 import android.util.Log
@@ -21,6 +23,7 @@ import android.util.Rational
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.isVisible
 import androidx.core.app.PictureInPictureModeChangedInfo
 import androidx.core.view.postDelayed
 import androidx.media3.common.Player
@@ -49,6 +52,7 @@ import java.util.HashMap
 class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     PluginRegistry.UserLeaveHintListener {
     private val PIP_CONTAINER = "PIP_CONTAINER"
+    private val PIP_LOADING_ICON = "PIP_LOADING_ICON"
     private val videoPlayers = ArrayMap<Long, BetterPlayer>()
     private val dataSources = LongSparseArray<Map<String, Any?>>()
     private var flutterState: FlutterState? = null
@@ -82,6 +86,38 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                                     topToTop = ConstraintLayout.LayoutParams.PARENT_ID
                                 }
                             )
+
+                            addView(
+                                ConstraintLayout(activity!!).apply {
+                                    tag = PIP_LOADING_ICON
+                                    isVisible = false
+                                    addView(
+                                        ProgressBar(activity!!).apply {
+                                            isIndeterminate = true
+                                        },
+                                        ConstraintLayout.LayoutParams(
+                                            ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
+                                            ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                                        ).apply {
+                                            matchConstraintPercentWidth = 0.15f
+                                            dimensionRatio = "1:1"
+                                            endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                                            startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                                            topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                                            bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                                        }
+                                    )
+                                },
+                                ConstraintLayout.LayoutParams(
+                                    ConstraintLayout.LayoutParams.MATCH_CONSTRAINT,
+                                    ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
+                                ).apply {
+                                    dimensionRatio = "16:9"
+                                    endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                                    startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                                    topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                                }
+                            )
                         },
                         ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -98,7 +134,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)
                         currentBetterPlayer.onPictureInPictureStatusChanged(false)
                         currentBetterPlayer.disposeMediaSession()
-                        (pipContainer?.parent as ViewGroup)?.removeView(pipContainer)
+                        (pipContainer?.parent as? ViewGroup?)?.removeView(pipContainer)
                     }
                 }
             }
@@ -142,7 +178,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         this.activityPluginBinding = binding
         activity = binding.activity
         binding.addOnUserLeaveHintListener(this)
-        (activity as? ComponentActivity)?.addOnPictureInPictureModeChangedListener(
+        (activity as? ComponentActivity?)?.addOnPictureInPictureModeChangedListener(
             mOnPictureInPictureModeChangedListener
         )
     }
@@ -157,7 +193,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
 
     override fun onDetachedFromActivity() {
         activityPluginBinding?.removeOnUserLeaveHintListener(this)
-        (activity as? ComponentActivity)?.removeOnPictureInPictureModeChangedListener(
+        (activity as? ComponentActivity?)?.removeOnPictureInPictureModeChangedListener(
             mOnPictureInPictureModeChangedListener
         )
     }
@@ -177,6 +213,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     private val exoPlayerListener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             setPictureInPictureParams()
+            if ((activity as? ComponentActivity?)?.isInPictureInPictureMode == true) {
+                activity?.window?.decorView?.findViewWithTag<View>(PIP_LOADING_ICON)?.isVisible = videoPlayers.values.lastOrNull()?.exoPlayer?.isPlaying == false
+            }
         }
     }
 

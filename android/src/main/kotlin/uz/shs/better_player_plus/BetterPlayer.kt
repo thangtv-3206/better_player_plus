@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
+import android.media.session.MediaSession
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import android.view.Surface
@@ -327,7 +328,7 @@ internal class BetterPlayer(
             }
 
             setupMediaSession(context)?.let {
-                setMediaSessionToken(it.sessionToken)
+                setMediaSessionToken(it.sessionToken.token as MediaSession.Token)
             }
         }
 
