@@ -604,6 +604,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             activity?.setPictureInPictureParams(
                 PictureInPictureParams.Builder()
                     .setAspectRatio(Rational(16, 9))
+                    .apply { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSeamlessResizeEnabled(true) }
                     .apply {
                         beforePipSourceRectHint?.let {
                             setSourceRectHint(it)
@@ -623,6 +624,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             activity!!.enterPictureInPictureMode(
                 PictureInPictureParams.Builder()
                     .setAspectRatio(Rational(16, 9))
+                    .apply { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSeamlessResizeEnabled(true) }
                     .build()
             )
         }
