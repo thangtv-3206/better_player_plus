@@ -127,8 +127,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     currentBetterPlayer.onPictureInPictureStatusChanged(true)
                 } else {
                     val pipContainer = activity!!.window?.decorView?.findViewWithTag<ViewGroup>(PIP_CONTAINER)
-                    beforePipSourceRectHint?.top?.let { top ->
-                        pipContainer?.setPadding(0, top, 0, 0)
+                    beforePipSourceRectHint?.let { rect ->
+                        val metrics = android.content.res.Resources.getSystem().displayMetrics
+                        val paddingRight = metrics.widthPixels - rect.left - rect.width()
+                        val paddingBottom = metrics.heightPixels - rect.top - rect.height()
+                        pipContainer?.setPadding(rect.left, rect.top, paddingRight, paddingBottom)
                     }
                     activity!!.window?.decorView?.postDelayed(750) {
                         currentBetterPlayer.exoPlayer.setVideoSurface(currentBetterPlayer.surface)

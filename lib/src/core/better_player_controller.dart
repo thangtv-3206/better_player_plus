@@ -847,9 +847,6 @@ class BetterPlayerController with WidgetsBindingObserver {
         !_hasCurrentDataSourceInitialized) {
       _hasCurrentDataSourceInitialized = true;
       _postEvent(BetterPlayerEvent(BetterPlayerEventType.initialized));
-      if (Platform.isAndroid) {
-        setBeforePipSourceRectHint();
-      }
     }
 
     if (currentVideoPlayerValue.isPip) {
@@ -1146,10 +1143,8 @@ class BetterPlayerController with WidgetsBindingObserver {
 
   Future<void>? setBeforePipSourceRectHint({GlobalKey? playerKey}) async {
     if (Platform.isAndroid) {
-      final playerContext =
-          playerKey?.currentContext ?? betterPlayerGlobalKey?.currentContext;
-      final RenderBox? renderBox =
-          playerContext?.findRenderObject() as RenderBox?;
+      final playerContext = playerKey?.currentContext ?? betterPlayerGlobalKey?.currentContext;
+      final RenderBox? renderBox = playerContext?.findRenderObject() as RenderBox?;
       if (renderBox == null) {
         BetterPlayerUtils.log("RenderBox is null. Did you provide valid global"
             " key?");
@@ -1157,11 +1152,22 @@ class BetterPlayerController with WidgetsBindingObserver {
       }
       final Offset position = renderBox.localToGlobal(Offset.zero);
 
-      await videoPlayerController?.setBeforePipSourceRectHint(
-        left: position.dx,
-        top: position.dy,
+      return setBeforePipSourceRectHint2(
+        x: position.dx,
+        y: position.dy,
         width: renderBox.size.width,
         height: renderBox.size.height,
+      );
+    }
+  }
+
+  Future<void>? setBeforePipSourceRectHint2({double? x, double? y, double? width, double? height}) async {
+    if (Platform.isAndroid) {
+      return videoPlayerController?.setBeforePipSourceRectHint(
+        top: y,
+        left: x,
+        width: width,
+        height: height,
       );
     }
   }
