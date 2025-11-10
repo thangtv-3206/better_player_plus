@@ -42,14 +42,6 @@ class _InAppPipState extends State<InAppPip> {
   }
 
   @override
-  void dispose() {
-    if (Platform.isIOS) {
-      widget.betterPlayerController.resetToOriginPipContentSource();
-    }
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,

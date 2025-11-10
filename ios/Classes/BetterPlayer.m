@@ -24,33 +24,26 @@ static void* presentationSizeContext = &presentationSizeContext;
     ///Fix for loading large videos
     _player.automaticallyWaitsToMinimizeStalling = false;
     self._observersAdded = false;
-    return self;
-}
-
-- (nonnull UIView *)view {
-    BetterPlayerView *playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
-    playerView.player = _player;
-    playerView.playerLayer.needsDisplayOnBoundsChange = YES;
-
+    _betterPlayerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
+    _betterPlayerView.player = _player;
     if (_enablePIP && [AVPictureInPictureController isPictureInPictureSupported]) {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        _betterPlayerView.onDisplayed = ^{
             if (!_pipController) {
-                _pipController = [[AVPictureInPictureController alloc] initWithPlayerLayer:playerView.playerLayer];
+                AVPictureInPictureControllerContentSource *pipContentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:_betterPlayerView.playerLayer];
+                _pipController = [[AVPictureInPictureController alloc] initWithContentSource:pipContentSource];
                 _pipController.delegate = self;
                 if (_lastAvPlayerTimeControlStatus == AVPlayerTimeControlStatusPlaying) {
                     [self willStartPictureInPicture:true];
                 }
-            } else {
-                _pipController.contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:playerView.playerLayer];
             }
-
-            if (!self._originPipContentSource) {
-                self._originPipContentSource = _pipController.contentSource;
-            }
-        });
+        };
     }
 
-    return playerView;
+    return self;
+}
+
+- (nonnull UIView *)view {
+    return _betterPlayerView;
 }
 
 - (void)addObservers:(AVPlayerItem*)item {
@@ -586,15 +579,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)resetToOriginPipContentSource:(bool)resetOrigin {
-    if (resetOrigin) {
-        self._originPipContentSource = NULL;
-    } else if (self._originPipContentSource &&
-               _pipController && _pipController.contentSource != self._originPipContentSource) {
-        _pipController.contentSource = self._originPipContentSource;
-    }
-}
-
 - (void)setPictureInPicture:(BOOL)pictureInPicture {
     if (_pipController) {
         if (pictureInPicture && ![_pipController isPictureInPictureActive]) {
@@ -709,6 +693,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)dispose {
+    if (_pipController) {
+        _pipController.delegate = nil;
+    }
     _pipController = nil;
     [self pause];
     [self disposeSansEventChannel];

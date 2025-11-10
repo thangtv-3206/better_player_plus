@@ -22,4 +22,9 @@
 - (AVPlayerLayer *)playerLayer {
     return (AVPlayerLayer *)self.layer;
 }
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    if (self.window && self.onDisplayed) self.onDisplayed();
+}
 @end

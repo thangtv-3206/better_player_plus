@@ -17,10 +17,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BetterPlayer : NSObject <FlutterPlatformView, FlutterStreamHandler, AVPictureInPictureControllerDelegate>
 @property(readonly, nonatomic) AVPlayer *player;
+@property(readonly, nonatomic) BetterPlayerView *betterPlayerView;
 @property(nonatomic, readonly) bool enablePIP;
 @property(nonatomic) AVPictureInPictureController *pipController;
 @property(nonatomic, readonly) bool isRestorePip;
-@property(nonatomic) AVPictureInPictureControllerContentSource *_originPipContentSource;
 @property(readonly, nonatomic) BetterPlayerEzDrmAssetsLoaderDelegate *loaderDelegate;
 @property(nonatomic) FlutterEventChannel *eventChannel;
 @property(nonatomic) FlutterEventSink eventSink;
@@ -54,7 +54,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setSpeed:(double)speed result:(FlutterResult)result;
 - (void)setAudioTrack:(NSString *)name index:(int)index;
 - (void)setTrackParameters:(int)width :(int)height :(int)bitrate;
-- (void)resetToOriginPipContentSource:(bool)resetOrigin;
 - (void)setPictureInPicture:(BOOL)pictureInPicture;
 - (void)gotoBackgroundWithPIP;
 - (int64_t)absolutePosition;

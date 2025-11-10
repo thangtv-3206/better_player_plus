@@ -58,7 +58,7 @@ bool _remoteCommandsInitialized = false;
                                    viewIdentifier:(int64_t)viewId
                                         arguments:(id _Nullable)args {
     NSNumber* textureId = [args objectForKey:@"textureId"];
-    BetterPlayerView* player = [_players objectForKey:@(textureId.intValue)];
+    UIView* player = [_players objectForKey:@(textureId.intValue)];
     return player;
 }
 
@@ -399,9 +399,6 @@ bool _remoteCommandsInitialized = false;
             int bitrate = [argsMap[@"bitrate"] intValue];
 
             [player setTrackParameters:width :height :bitrate];
-            result(nil);
-        } else if ([@"resetToOriginPipContentSource" isEqualToString:call.method]) {
-            [player resetToOriginPipContentSource:[argsMap[@"resetOrigin"] boolValue]];
             result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]) {
             [player gotoBackgroundWithPIP];

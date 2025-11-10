@@ -242,6 +242,8 @@ class _BetterPlayerVideoFitWidgetState
 
   bool _started = false;
 
+  Key _videoPlayerKey = UniqueKey();
+
   StreamSubscription? _controllerEventSubscription;
 
   @override
@@ -292,14 +294,16 @@ class _BetterPlayerVideoFitWidgetState
       if (event == BetterPlayerControllerEvent.play) {
         if (!_started) {
           setState(() {
-            _started =
-                widget.betterPlayerController.hasCurrentDataSourceStarted;
+            _started = widget.betterPlayerController.hasCurrentDataSourceStarted;
           });
         }
-      }
-      if (event == BetterPlayerControllerEvent.setupDataSource) {
+      } else if (event == BetterPlayerControllerEvent.setupDataSource) {
         setState(() {
           _started = false;
+        });
+      } else if (event == BetterPlayerControllerEvent.reloadVideoPlayerView) {
+        setState(() {
+          _videoPlayerKey = UniqueKey();
         });
       }
     });
@@ -318,7 +322,7 @@ class _BetterPlayerVideoFitWidgetState
               child: SizedBox(
                 width: controller!.value.size?.width ?? 0,
                 height: controller!.value.size?.height ?? 0,
-                child: VideoPlayer(controller),
+                child: VideoPlayer(key: _videoPlayerKey, controller),
               ),
             ),
           ),

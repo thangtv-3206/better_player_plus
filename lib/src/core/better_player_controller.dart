@@ -312,9 +312,6 @@ class BetterPlayerController with WidgetsBindingObserver {
     otherBetterPlayerController.detachVideoPlayerController();
     otherBetterPlayerController.dispose(forceDispose: true);
     videoPlayerController?.addListener(_onVideoPlayerChanged);
-    if (Platform.isIOS) {
-      resetToOriginPipContentSource(resetOrigin: true);
-    }
 
     _setupSubtitles();
     setupSubtitleSource(_betterPlayerSubtitlesSourceList.last,
@@ -1147,13 +1144,6 @@ class BetterPlayerController with WidgetsBindingObserver {
     return _overriddenFit ?? betterPlayerConfiguration.fit;
   }
 
-  Future<void>? resetToOriginPipContentSource(
-      {bool resetOrigin = false}) async {
-    if (Platform.isIOS) {
-      await videoPlayerController?.resetToOriginPipContentSource(resetOrigin);
-    }
-  }
-
   Future<void>? setBeforePipSourceRectHint({GlobalKey? playerKey}) async {
     if (Platform.isAndroid) {
       final playerContext =
@@ -1402,6 +1392,12 @@ class BetterPlayerController with WidgetsBindingObserver {
   void _postControllerEvent(BetterPlayerControllerEvent event) {
     if (!_controllerEventStreamController.isClosed) {
       _controllerEventStreamController.add(event);
+    }
+  }
+
+  void reloadVideoPlayerView() {
+    if (!_controllerEventStreamController.isClosed) {
+      _controllerEventStreamController.add(BetterPlayerControllerEvent.reloadVideoPlayerView);
     }
   }
 

@@ -636,14 +636,6 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         _textureId, width, height, bitrate);
   }
 
-  Future<void> resetToOriginPipContentSource(bool resetOrigin) async {
-    if (Platform.isIOS) {
-      if (_textureId != null) {
-        await _videoPlayerPlatform.resetToOriginPipContentSource(_textureId!, resetOrigin);
-      }
-    }
-  }
-
   Future<void> setBeforePipSourceRectHint({double? top, double? left, double? width, double? height}) async {
     if (Platform.isAndroid) {
       await _videoPlayerPlatform.setBeforePipSourceRectHint(top, left, width, height);

@@ -10,4 +10,5 @@
 @interface BetterPlayerView : UIView
 @property AVPlayer *player;
 @property (readonly) AVPlayerLayer *playerLayer;
+@property (nonatomic, copy) void (^onDisplayed)(void);
 @end
