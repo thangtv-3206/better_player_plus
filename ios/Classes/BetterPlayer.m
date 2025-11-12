@@ -24,26 +24,29 @@ static void* presentationSizeContext = &presentationSizeContext;
     ///Fix for loading large videos
     _player.automaticallyWaitsToMinimizeStalling = false;
     self._observersAdded = false;
-    _betterPlayerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
-    _betterPlayerView.player = _player;
-    if (_enablePIP && [AVPictureInPictureController isPictureInPictureSupported]) {
-        _betterPlayerView.onDisplayed = ^{
-            if (!_pipController) {
-                AVPictureInPictureControllerContentSource *pipContentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:_betterPlayerView.playerLayer];
-                _pipController = [[AVPictureInPictureController alloc] initWithContentSource:pipContentSource];
-                _pipController.delegate = self;
-                if (_lastAvPlayerTimeControlStatus == AVPlayerTimeControlStatusPlaying) {
-                    [self willStartPictureInPicture:true];
-                }
-            }
-        };
-    }
 
     return self;
 }
 
 - (nonnull UIView *)view {
-    return _betterPlayerView;
+    BetterPlayerView *betterPlayerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
+    betterPlayerView.player = _player;
+    if (_enablePIP && [AVPictureInPictureController isPictureInPictureSupported]) {
+        betterPlayerView.onDisplayed = ^{
+            if (_pipController && !_pipController.isPictureInPictureActive) {
+                _pipController.contentSource = nil;
+                _pipController.delegate = nil;
+                _pipController = nil;
+            }
+            AVPictureInPictureControllerContentSource *pipContentSource = [[AVPictureInPictureControllerContentSource alloc] initWithPlayerLayer:betterPlayerView.playerLayer];
+            _pipController = [[AVPictureInPictureController alloc] initWithContentSource:pipContentSource];
+            _pipController.delegate = self;
+            if (_lastAvPlayerTimeControlStatus == AVPlayerTimeControlStatusPlaying) {
+                [self willStartPictureInPicture:true];
+            }
+        };
+    }
+    return betterPlayerView;
 }
 
 - (void)addObservers:(AVPlayerItem*)item {
@@ -693,6 +696,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)dispose {
+    [self setPictureInPicture:false];
     if (_pipController) {
         _pipController.delegate = nil;
     }
@@ -700,7 +704,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     [self pause];
     [self disposeSansEventChannel];
     [_eventChannel setStreamHandler:nil];
-    [self setPictureInPicture:false];
     _disposed = true;
 }
 
