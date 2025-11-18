@@ -51,9 +51,6 @@ final Widget overlay;
 /// Defines if the player will start in fullscreen when play is pressed
 final bool fullScreenByDefault;
 
-/// Defines if the player will sleep in fullscreen or not
-final bool allowedScreenSleep;
-
 /// Defines aspect ratio which will be used in fullscreen
 final double fullScreenAspectRatio;
 

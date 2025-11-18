@@ -30,7 +30,6 @@ class _PictureInPicturePageState extends State<PictureInPicturePage> with Widget
       fit: BoxFit.contain,
       autoPlay: true,
       autoDispose: false,
-      allowedScreenSleep: false,
       deviceOrientationsAfterFullScreen: [DeviceOrientation.portraitDown, DeviceOrientation.portraitUp],
       controlsConfiguration: BetterPlayerControlsConfiguration(
         showControlsOnInitialize: false,
