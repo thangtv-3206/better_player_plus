@@ -31,7 +31,7 @@ class VideoPlayerValue {
     this.isPlaying = false,
     this.isLooping = false,
     this.isBuffering = false,
-    this.volume = 1.0,
+    this.volume = 0.0,
     this.speed = 1.0,
     this.errorDescription,
     this.isPip = false,
