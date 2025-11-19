@@ -4,6 +4,7 @@
 
 #import "BetterPlayer.h"
 #import <better_player_plus/better_player_plus-Swift.h>
+#import <UIKit/UIKit.h>
 
 static void* timeRangeContext = &timeRangeContext;
 static void* statusContext = &statusContext;
@@ -602,12 +603,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 }
 
-- (void)gotoBackgroundWithPIP {
-    [_pipController invalidatePlaybackState];
-    [self willStartPictureInPicture:true];
-    [[UIApplication sharedApplication] performSelector:@selector(suspend)];
-}
-
 - (void)pictureInPictureControllerDidStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
     if (_eventSink != nil && !_isRestorePip) {
         _eventSink(@{@"event" : @"closePip"});
@@ -619,6 +614,9 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 - (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
     if (_eventSink != nil) {
         _eventSink(@{@"event" : @"pipStart"});
+    }
+    if (([UIApplication sharedApplication].applicationState == UIApplicationStateActive)) {
+        [[UIApplication sharedApplication] performSelector:@selector(suspend)];
     }
 }
 

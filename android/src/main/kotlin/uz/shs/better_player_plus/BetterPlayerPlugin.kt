@@ -206,7 +206,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             && hasPipPermission(flutterState!!.applicationContext)
         ) {
             videoPlayers.values.lastOrNull()?.let {
-                if (it.exoPlayer.isPlaying) {
+                if (it.enablePIP && it.exoPlayer.isPlaying) {
                     enablePictureInPicture()
                 }
             }
@@ -214,10 +214,24 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
     }
 
     private val exoPlayerListener = object : Player.Listener {
-        override fun onIsPlayingChanged(isPlaying: Boolean) {
+        override fun onIsPlayingChanged(ignore: Boolean) {
             setPictureInPictureParams()
-            if ((activity as? ComponentActivity?)?.isInPictureInPictureMode == true) {
-                activity?.window?.decorView?.findViewWithTag<View>(PIP_LOADING_ICON)?.isVisible = videoPlayers.values.lastOrNull()?.exoPlayer?.isPlaying == false
+            val window = activity?.window
+
+            if (window != null) {
+                val isPlaying = videoPlayers.values.lastOrNull()?.exoPlayer?.isPlaying == true
+                val isKeepingScreenOn = window.attributes.flags and
+                        android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON != 0
+
+                if ((activity as? ComponentActivity?)?.isInPictureInPictureMode == true) {
+                    window.decorView?.findViewWithTag<View>(PIP_LOADING_ICON)?.isVisible = !isPlaying
+                }
+
+                if (isPlaying) {
+                    if (!isKeepingScreenOn) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else if (isKeepingScreenOn) {
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
             }
         }
     }
@@ -256,7 +270,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 }
                 val betterPlayer = BetterPlayer(
                     flutterState?.applicationContext!!, eventChannel, handle,
-                    customDefaultLoadControl, result
+                    call.argument<Boolean>(ENABLE_PIP_PARAMETER)!!, customDefaultLoadControl, result
                 )
                 betterPlayer.exoPlayer.addListener(exoPlayerListener)
                 videoPlayers.put(handle.id(), betterPlayer)
@@ -609,12 +623,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     .setAspectRatio(Rational(16, 9))
                     .apply { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setSeamlessResizeEnabled(true) }
                     .apply {
-                        beforePipSourceRectHint?.let {
-                            setSourceRectHint(it)
-                        }
-
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            setAutoEnterEnabled(videoPlayers.values.lastOrNull()?.exoPlayer?.isPlaying == true)
+                            val currentBetterPlayer = videoPlayers.values.lastOrNull()
+                            setAutoEnterEnabled(currentBetterPlayer?.enablePIP == true && currentBetterPlayer?.exoPlayer?.isPlaying == true)
                         }
                     }
                     .build()

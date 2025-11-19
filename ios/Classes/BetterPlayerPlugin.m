@@ -401,7 +401,7 @@ bool _remoteCommandsInitialized = false;
             [player setTrackParameters:width :height :bitrate];
             result(nil);
         } else if ([@"enablePictureInPicture" isEqualToString:call.method]) {
-            [player gotoBackgroundWithPIP];
+            [player setPictureInPicture:true];
             result(nil);
         } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
             [player setPictureInPicture:false];

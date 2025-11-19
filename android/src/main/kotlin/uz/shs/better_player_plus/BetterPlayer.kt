@@ -79,6 +79,7 @@ internal class BetterPlayer(
     context: Context,
     private val eventChannel: EventChannel,
     val textureEntry: SurfaceTextureEntry,
+    val enablePIP: Boolean,
     customDefaultLoadControl: CustomDefaultLoadControl?,
     result: MethodChannel.Result
 ) {
@@ -543,15 +544,21 @@ internal class BetterPlayer(
 
     fun play() {
         exoPlayer?.let {
-            it.playWhenReady = true
-            if (it.isCurrentMediaItemLive) {
-                it.seekToDefaultPosition()
+            if (!it.playWhenReady) {
+                it.playWhenReady = true
+                if (it.isCurrentMediaItemLive) {
+                    it.seekToDefaultPosition()
+                }
             }
         }
     }
 
     fun pause() {
-        exoPlayer?.playWhenReady = false
+        exoPlayer?.let {
+            if (it.playWhenReady) {
+                it.playWhenReady = false
+            }
+        }
     }
 
     fun setLooping(value: Boolean) {
