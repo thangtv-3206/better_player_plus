@@ -53,44 +53,11 @@ class _BetterPlayerState extends State<BetterPlayer> {
   ///State of navigator on widget created
   late NavigatorState? _navigatorState;
 
-  StreamSubscription<DeviceOrientation>? _deviceOrientationSubscription;
-
-  bool _isFullScreenByRotate = false;
-
   ///Flag which determines if widget has initialized
   bool _initialized = false;
 
   ///Subscription for controller events
   StreamSubscription? _controllerEventSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_betterPlayerConfiguration.enterFullScreenWhenRotate == true) {
-      _deviceOrientationSubscription =
-          deviceOrientationStream.skip(1).listen((deviceOrientation) {
-        final controller = widget.controller;
-        if (controller.isVideoInitialized() != true ||
-            !controller.isPlayerVisible ||
-            controller.isPipMode() == true) return;
-
-        if (!_isFullScreenByRotate &&
-            controller.controlsEnabled &&
-            !controller.isFullScreen &&
-            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
-                .contains(deviceOrientation)) {
-          _isFullScreenByRotate = true;
-          controller.enterFullScreen();
-        } else if (_isFullScreenByRotate &&
-            controller.isFullScreen &&
-            deviceOrientation == DeviceOrientation.portraitUp) {
-          SystemChrome.setPreferredOrientations(
-              _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
-          controller.exitFullScreen();
-        }
-      });
-    }
-  }
 
   @override
   void didChangeDependencies() {
@@ -139,7 +106,6 @@ class _BetterPlayerState extends State<BetterPlayer> {
     widget.controller.dispose();
     VisibilityDetectorController.instance
         .forget(Key("${widget.controller.hashCode}_key"));
-    _deviceOrientationSubscription?.cancel();
     super.dispose();
   }
 
@@ -178,7 +144,6 @@ class _BetterPlayerState extends State<BetterPlayer> {
     } else if (_isFullScreen) {
       Navigator.maybeOf(context, rootNavigator: true)?.pop();
       _isFullScreen = false;
-      _isFullScreenByRotate = false;
       controller
           .postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreen));
     }
