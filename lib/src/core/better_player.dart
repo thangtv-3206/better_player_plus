@@ -66,30 +66,17 @@ class _BetterPlayerState extends State<BetterPlayer> {
   @override
   void initState() {
     super.initState();
-    if (_betterPlayerConfiguration.enterFullScreenWhenRotate == true) {
-      _deviceOrientationSubscription =
-          deviceOrientationStream.skip(1).listen((deviceOrientation) {
-        final controller = widget.controller;
-        if (controller.isVideoInitialized() != true ||
-            !controller.isPlayerVisible ||
-            controller.isPipMode() == true) return;
-
-        if (!_isFullScreenByRotate &&
-            controller.controlsEnabled &&
-            !controller.isFullScreen &&
-            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]
-                .contains(deviceOrientation)) {
-          _isFullScreenByRotate = true;
-          controller.enterFullScreen();
-        } else if (_isFullScreenByRotate &&
-            controller.isFullScreen &&
-            deviceOrientation == DeviceOrientation.portraitUp) {
-          SystemChrome.setPreferredOrientations(
-              _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
-          controller.exitFullScreen();
-        }
-      });
-    }
+    _deviceOrientationSubscription =
+        deviceOrientationStream.skip(1).listen((deviceOrientation) {
+      final controller = widget.controller;
+      if (controller.isVideoInitialized() != true ||
+          !controller.isPlayerVisible ||
+          controller.isPipMode() == true) {
+        SystemChrome.setPreferredOrientations(_betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
+      } else {
+        SystemChrome.setPreferredOrientations([]);
+      }
+    });
   }
 
   @override
@@ -159,6 +146,8 @@ class _BetterPlayerState extends State<BetterPlayer> {
         onFullScreenChanged();
         break;
       case BetterPlayerControllerEvent.hideFullscreen:
+        SystemChrome.setPreferredOrientations(
+            _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
         onFullScreenChanged();
         break;
       default:
@@ -235,15 +224,35 @@ class _BetterPlayerState extends State<BetterPlayer> {
 
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: _betterPlayerConfiguration.systemOverlaysAfterFullScreen);
-    await SystemChrome.setPreferredOrientations(
-        _betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
   }
 
   Widget _buildPlayer() {
+    final orientation = MediaQuery.orientationOf(context);
+    final controller = widget.controller;
+    if (_betterPlayerConfiguration.enterFullScreenWhenRotate == true &&
+        controller.isVideoInitialized() == true &&
+        controller.isPlayerVisible &&
+        controller.isPipMode() == false) {
+      final size = MediaQuery.sizeOf(context);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_isFullScreenByRotate &&
+            controller.controlsEnabled &&
+            !controller.isFullScreen &&
+            orientation == Orientation.landscape &&
+            size.width > size.height) {
+          _isFullScreenByRotate = true;
+          controller.enterFullScreen();
+        } else if (_isFullScreenByRotate &&
+            controller.isFullScreen &&
+            orientation == Orientation.portrait &&
+            size.width < size.height) {
+          controller.exitFullScreen();
+        }
+      });
+    }
     return VisibilityDetector(
       key: Key("${widget.controller.hashCode}_key"),
-      onVisibilityChanged: (VisibilityInfo info) =>
-          widget.controller.onPlayerVisibilityChanged(info.visibleFraction),
+      onVisibilityChanged: (VisibilityInfo info) => widget.controller.onPlayerVisibilityChanged(info.visibleFraction),
       child: BetterPlayerWithControls(
         controller: widget.controller,
       ),
