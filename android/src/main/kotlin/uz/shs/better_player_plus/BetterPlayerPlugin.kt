@@ -283,6 +283,10 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                 isPictureInPictureSupported()
             )
 
+            IS_AUTO_ROTATE_ENABLED_METHOD -> result.success(
+                isAutoRotateEnabled()
+            )
+
             SET_BEFORE_PIP_SOURCE_RECT_HINT -> {
                 setBeforePipSourceRectHint(call)
                 result.success(null)
@@ -606,6 +610,17 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
             .hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
     }
 
+    private fun isAutoRotateEnabled(): Boolean {
+        return try {
+            Settings.System.getInt(
+                flutterState?.applicationContext?.contentResolver,
+                Settings.System.ACCELEROMETER_ROTATION
+            ) == 1
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun setBeforePipSourceRectHint(call: MethodCall) {
         val density = activity!!.resources.displayMetrics.density
         val left = (call.argument<Double>(LEFT_PARAMETER)!! * density).toInt()
@@ -788,6 +803,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
         private const val ENABLE_PICTURE_IN_PICTURE_METHOD = "enablePictureInPicture"
         private const val DISABLE_PICTURE_IN_PICTURE_METHOD = "disablePictureInPicture"
         private const val IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD = "isPictureInPictureSupported"
+        private const val IS_AUTO_ROTATE_ENABLED_METHOD = "isAutoRotateEnabled"
         private const val SET_MIX_WITH_OTHERS_METHOD = "setMixWithOthers"
         private const val CLEAR_CACHE_METHOD = "clearCache"
         private const val DISPOSE_METHOD = "dispose"

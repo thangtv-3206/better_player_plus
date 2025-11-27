@@ -6,7 +6,8 @@
 import 'dart:async';
 
 // Flutter imports:
-import 'package:better_player_plus/better_player_plus.dart' show BetterPlayerAsmsTrack;
+import 'package:better_player_plus/better_player_plus.dart'
+    show BetterPlayerAsmsTrack;
 import 'package:better_player_plus/src/configuration/better_player_buffering_configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -69,7 +70,8 @@ abstract class VideoPlayerPlatform {
 
   /// Creates an instance of a video player and returns its textureId.
   Future<int?> create(
-      {bool enablePIP = true, BetterPlayerBufferingConfiguration? bufferingConfiguration}) {
+      {bool enablePIP = true,
+      BetterPlayerBufferingConfiguration? bufferingConfiguration}) {
     throw UnimplementedError('create() has not been implemented.');
   }
 
@@ -139,8 +141,10 @@ abstract class VideoPlayerPlatform {
     throw UnimplementedError('getAbsolutePosition() has not been implemented.');
   }
 
-  Future<void> setBeforePipSourceRectHint(double? top, double? left, double? width, double? height) {
-    throw UnimplementedError('setBeforePipSourceRectHint() has not been implemented.');
+  Future<void> setBeforePipSourceRectHint(
+      double? top, double? left, double? width, double? height) {
+    throw UnimplementedError(
+        'setBeforePipSourceRectHint() has not been implemented.');
   }
 
   ///Enables PiP mode.
@@ -159,6 +163,10 @@ abstract class VideoPlayerPlatform {
   Future<bool?> isPictureInPictureEnabled(int? textureId) {
     throw UnimplementedError(
         'isPictureInPictureEnabled() has not been implemented.');
+  }
+
+  Future<bool?> isAutoRotateEnabled() {
+    throw UnimplementedError('isAutoRotateEnabled() has not been implemented.');
   }
 
   Future<bool?> hasPipPermission(int? textureId) {
@@ -487,8 +495,8 @@ enum VideoEventType {
   closePip,
 
   /// IOS only: restore UI from PIP
-  restorePip, 
-  
+  restorePip,
+
   /// An unknown event has been received.
   unknown,
 }
