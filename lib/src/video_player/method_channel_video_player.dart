@@ -231,7 +231,8 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setBeforePipSourceRectHint(double? top, double? left, double? width, double? height) async {
+  Future<void> setBeforePipSourceRectHint(
+      double? top, double? left, double? width, double? height) async {
     if (Platform.isAndroid) {
       return _channel.invokeMethod<void>(
         'setBeforePipSourceRectHint',
@@ -268,6 +269,14 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         'textureId': textureId,
       },
     );
+  }
+
+  @override
+  Future<bool?> isAutoRotateEnabled() {
+    if (Platform.isAndroid) {
+      return _channel.invokeMethod<bool>('isAutoRotateEnabled');
+    }
+    return Future.value(false);
   }
 
   @override
@@ -447,7 +456,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
             eventType: VideoEventType.pipStop,
             key: key,
           );
-        
+
         case 'enteringPip':
           return VideoEvent(
             eventType: VideoEventType.enteringPip,
