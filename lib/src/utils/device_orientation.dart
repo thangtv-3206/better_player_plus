@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 const _valueChangedThreshold = 3.0;
-const _orientationChangedThreshold = 8.5;
+const _flatPositionThreshold = 8.5;
+const _orientationDiffBuffer = 2.0;
+const double g = 9.8;
+
 final _samplingPeriod = Duration(milliseconds: Platform.isAndroid ? 200 : 50);
 
 AccelerometerEvent _lastEvent = AccelerometerEvent(0, 0, 0, DateTime(0));
@@ -27,23 +31,28 @@ Stream<DeviceOrientation> deviceOrientationStream =
     final zDiff = (z - _lastEvent.z).abs();
 
     _lastEvent = event;
+
+    final remainingGravity = sqrt((g * g) - (z * z));
+    double dynamicThreshold = remainingGravity * 0.85;
+    final adjustedThreshold = dynamicThreshold.clamp(2.0, 8.5);
+
     if (xDiff < _valueChangedThreshold &&
         yDiff < _valueChangedThreshold &&
         zDiff < _valueChangedThreshold) {
-      if (xAbs > yAbs && xAbs > zAbs && zAbs < 6) {
-        if (x > _orientationChangedThreshold) {
+      if (xAbs > yAbs + _orientationDiffBuffer && zAbs < _flatPositionThreshold) {
+        if (x > adjustedThreshold) {
           _lastKnownOrientation = Platform.isIOS
               ? DeviceOrientation.landscapeRight
               : DeviceOrientation.landscapeLeft;
-        } else if (x < -_orientationChangedThreshold) {
+        } else if (x < -adjustedThreshold) {
           _lastKnownOrientation = Platform.isIOS
               ? DeviceOrientation.landscapeLeft
               : DeviceOrientation.landscapeRight;
         }
-      } else if (yAbs > xAbs && yAbs > zAbs && zAbs < 6) {
-        if (y > _orientationChangedThreshold) {
+      } else if (yAbs > xAbs + _orientationDiffBuffer && zAbs < _flatPositionThreshold) {
+        if (y > adjustedThreshold) {
           _lastKnownOrientation = DeviceOrientation.portraitUp;
-        } else if (y < -_orientationChangedThreshold) {
+        } else if (y < -adjustedThreshold) {
           _lastKnownOrientation = DeviceOrientation.portraitDown;
         }
       }
