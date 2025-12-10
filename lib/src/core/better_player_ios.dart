@@ -21,9 +21,7 @@ class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
     deviceOrientationSubscription =
         deviceOrientationStream.skip(1).listen((deviceOrientation) {
       final controller = widget.controller;
-      if (controller.isVideoInitialized() != true ||
-          !controller.isPlayerVisible ||
-          controller.isPipMode() == true) {
+      if (!controller.isPlayerVisible || controller.isPipMode() == true) {
         SystemChrome.setPreferredOrientations(
             betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
       } else {
@@ -56,7 +54,6 @@ class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
     final controller = widget.controller;
     
     if (betterPlayerConfiguration.enterFullScreenWhenRotate == true &&
-        controller.isVideoInitialized() == true &&
         controller.isPlayerVisible &&
         controller.isPipMode() == false) {
       WidgetsBinding.instance.addPostFrameCallback((_) {

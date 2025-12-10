@@ -21,12 +21,10 @@ class _BetterPlayerAndroidState extends BetterPlayerBaseState<BetterPlayerAndroi
     if (betterPlayerConfiguration.enterFullScreenWhenRotate == true) {
       deviceOrientationSubscription = deviceOrientationStream.skip(1).listen((deviceOrientation) async {
         final controller = widget.controller;
-        if (controller.isVideoInitialized() != true || 
-            !controller.isPlayerVisible || 
-            controller.isPipMode() == true) {
+        if (!controller.isPlayerVisible || controller.isPipMode() == true) {
           return;
         }
-        
+
         if (!isFullScreenByRotate &&
             controller.controlsEnabled &&
             !controller.isFullScreen &&
