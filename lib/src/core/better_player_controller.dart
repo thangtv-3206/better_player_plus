@@ -1108,7 +1108,7 @@ class BetterPlayerController with WidgetsBindingObserver {
       }
 
       if (appLifecycleState == AppLifecycleState.resumed) {
-        if (_wasPlayingBeforePause == true) {
+        if (_wasPlayingBeforePause == true && isPlayerVisible) {
           play();
         }
       }
