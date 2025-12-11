@@ -64,6 +64,10 @@ static void* presentationSizeContext = &presentationSizeContext;
                                                  selector:@selector(itemDidPlayToEndTime:)
                                                      name:AVPlayerItemDidPlayToEndTimeNotification
                                                    object:item];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(audioInterrupt:)
+                                                     name:AVAudioSessionRouteChangeNotification
+                                                   object:[AVAudioSession sharedInstance]];
         self._observersAdded = true;
     }
 }
@@ -116,6 +120,19 @@ static void* presentationSizeContext = &presentationSizeContext;
     }
 }
 
+- (void)audioInterrupt:(NSNotification *)notification {
+    NSDictionary *userInfo = notification.userInfo;
+    NSNumber *reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey];
+    AVAudioSessionRouteChangeReason reason = [reasonValue unsignedIntegerValue];
+
+    if (reason == AVAudioSessionRouteChangeReasonOldDeviceUnavailable) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            if (_isPlaying) {
+                [self play];
+            }
+        });
+    }
+}
 
 static inline CGFloat radiansToDegrees(CGFloat radians) {
     // Input range [-pi, pi] or [-180, 180]
