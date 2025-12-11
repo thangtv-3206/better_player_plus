@@ -695,13 +695,27 @@ class BetterPlayerController with WidgetsBindingObserver {
   }
 
   ///Stop video playback.
-  Future<void> pause() async {
+  Future<void> pause({bool promisePlaying = false}) async {
     if (videoPlayerController == null) {
       throw StateError("The data source has not been initialized");
     }
 
+    if (promisePlaying) {
+      _wasPlayingBeforePause = true;
+    }
     await videoPlayerController!.pause();
     _postEvent(BetterPlayerEvent(BetterPlayerEventType.pause));
+  }
+
+  Future<void> validatePromisePlaying() async {
+    if (_wasPlayingBeforePause == true) {
+      _wasPlayingBeforePause = null;
+      if (videoPlayerController?.value.hasError ?? false) {
+        await retryDataSource();
+      } else {
+        await play();
+      }
+    }
   }
 
   ///Move player to specific position/moment of the video.
