@@ -119,6 +119,9 @@ class BetterPlayerController with WidgetsBindingObserver {
   ///Was player playing before automatic pause.
   bool? _wasPlayingBeforePause;
 
+  ///Promise playing when temp pause is used.
+  bool _promisePlaying = false;
+
   ///Currently used translations
   BetterPlayerTranslations translations = BetterPlayerTranslations();
 
@@ -701,15 +704,15 @@ class BetterPlayerController with WidgetsBindingObserver {
     }
 
     if (promisePlaying) {
-      _wasPlayingBeforePause = true;
+      _promisePlaying = true;
     }
     await videoPlayerController!.pause();
     _postEvent(BetterPlayerEvent(BetterPlayerEventType.pause));
   }
 
   Future<void> validatePromisePlaying() async {
-    if (_wasPlayingBeforePause == true) {
-      _wasPlayingBeforePause = null;
+    if (_promisePlaying == true) {
+      _promisePlaying = false;
       if (videoPlayerController?.value.hasError ?? false) {
         await retryDataSource();
       } else {
@@ -1108,7 +1111,7 @@ class BetterPlayerController with WidgetsBindingObserver {
       }
 
       if (appLifecycleState == AppLifecycleState.resumed) {
-        if (_wasPlayingBeforePause == true && isPlayerVisible) {
+        if (_wasPlayingBeforePause == true) {
           play();
         }
       }
