@@ -24,19 +24,25 @@ class _BetterPlayerAndroidState extends BetterPlayerBaseState<BetterPlayerAndroi
         if (!controller.isPlayerVisible || controller.isPipMode() == true) {
           return;
         }
+        final isDeviceEnableRotate = (await VideoPlayerPlatform.instance.isAutoRotateEnabled() ?? false);
+        final isLandscape = [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(deviceOrientation);
 
         if (!isFullScreenByRotate &&
             controller.controlsEnabled &&
             !controller.isFullScreen &&
-            [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(deviceOrientation) &&
-            (await VideoPlayerPlatform.instance.isAutoRotateEnabled() ?? false)) {
+            isLandscape &&
+            isDeviceEnableRotate) {
           isFullScreenByRotate = true;
           controller.enterFullScreen();
         } else if (isFullScreenByRotate &&
             controller.isFullScreen &&
             deviceOrientation == DeviceOrientation.portraitUp) {
+          lastLandscapeOrientation = null;
           SystemChrome.setPreferredOrientations(betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
           controller.exitFullScreen();
+        } else if (isDeviceEnableRotate && isLandscape && controller.isFullScreen && isFullScreenByRotate && controller.controlsEnabled) {
+          // Handle the case where the device is rotated 360 degrees without triggering the 'Enter Fullscreen' toggle
+          SystemChrome.setPreferredOrientations([deviceOrientation]);
         }
       });
     }

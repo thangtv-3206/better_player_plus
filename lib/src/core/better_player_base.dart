@@ -31,6 +31,8 @@ abstract class BetterPlayerBaseState<T extends BetterPlayerBase> extends State<T
 
   StreamSubscription? controllerEventSubscription;
 
+  DeviceOrientation? lastLandscapeOrientation = null;
+
   @protected
   void initializeRotationListener();
 
@@ -170,8 +172,9 @@ abstract class BetterPlayerBaseState<T extends BetterPlayerBase> extends State<T
     );
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    await SystemChrome.setPreferredOrientations([]);
-
+    await SystemChrome.setPreferredOrientations([
+      if (lastLandscapeOrientation != null) lastLandscapeOrientation!
+    ]);
     await Navigator.of(context, rootNavigator: true).push(route);
     isFullScreen = false;
     widget.controller.exitFullScreen();
