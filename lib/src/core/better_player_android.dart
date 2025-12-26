@@ -30,11 +30,13 @@ class _BetterPlayerAndroidState extends BetterPlayerBaseState<BetterPlayerAndroi
             !controller.isFullScreen &&
             [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(deviceOrientation) &&
             (await VideoPlayerPlatform.instance.isAutoRotateEnabled() ?? false)) {
+          lastLandscapeOrientation = deviceOrientation;
           isFullScreenByRotate = true;
           controller.enterFullScreen();
         } else if (isFullScreenByRotate &&
             controller.isFullScreen &&
             deviceOrientation == DeviceOrientation.portraitUp) {
+          lastLandscapeOrientation = null;
           SystemChrome.setPreferredOrientations(betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
           controller.exitFullScreen();
         }
