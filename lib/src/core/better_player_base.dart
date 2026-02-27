@@ -128,7 +128,6 @@ abstract class BetterPlayerBaseState<T extends BetterPlayerBase> extends State<T
     } else if (isFullScreen) {
       Navigator.maybeOf(context, rootNavigator: true)?.pop();
       isFullScreen = false;
-      isFullScreenByRotate = false;
       controller
           .postEvent(BetterPlayerEvent(BetterPlayerEventType.hideFullscreen));
     }
@@ -177,6 +176,7 @@ abstract class BetterPlayerBaseState<T extends BetterPlayerBase> extends State<T
     ]);
     await Navigator.of(context, rootNavigator: true).push(route);
     isFullScreen = false;
+    isFullScreenByRotate = false;
     widget.controller.exitFullScreen();
 
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
