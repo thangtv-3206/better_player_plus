@@ -25,7 +25,9 @@ class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
         SystemChrome.setPreferredOrientations(
             betterPlayerConfiguration.deviceOrientationsAfterFullScreen);
       } else {
-        SystemChrome.setPreferredOrientations([]);
+        if ([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight].contains(deviceOrientation)) {
+          SystemChrome.setPreferredOrientations([]);
+        }
       }
     });
   }
@@ -52,7 +54,7 @@ class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
   Widget buildPlayer(BuildContext context) {
     final orientation = MediaQuery.orientationOf(context);
     final controller = widget.controller;
-    
+
     if (betterPlayerConfiguration.enterFullScreenWhenRotate == true &&
         controller.isPlayerVisible &&
         controller.isPipMode() == false) {
