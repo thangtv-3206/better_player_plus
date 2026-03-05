@@ -296,6 +296,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 -(void)startStalledCheck{
+    if (!_isPlaying) {
+        return;
+    }
+
     if (_player.currentItem.playbackLikelyToKeepUp ||
         [self availableDuration] - CMTimeGetSeconds(_player.currentItem.currentTime) > 10.0) {
         [self play];
@@ -342,25 +346,37 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
             if (_player.timeControlStatus == AVPlayerTimeControlStatusPaused) {
                 shouldHandleStalled = NO;
-                if (_pipController.pictureInPictureActive == true) {
+                if (_pipController.pictureInPictureActive) {
+                    _isPlaying = false;
                     if (_eventSink != nil) {
                         _eventSink(@{@"event": @"pause"});
                     }
                 }
                 [self willStartPictureInPicture:false];
             } else if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
-                const BOOL isLive = CMTIME_IS_INDEFINITE([_player currentItem].duration);
+                AVPlayerItem *currentItem = _player.currentItem;
+                if (currentItem) {
+                    const BOOL isLive = CMTIME_IS_INDEFINITE(currentItem.duration);
+                    if (isLive) {
+                        NSArray *ranges = currentItem.seekableTimeRanges;
+                        if (ranges.count > 0) {
+                            CMTimeRange timeRange = [[ranges lastObject] CMTimeRangeValue];
+                            if (CMTIME_IS_VALID(timeRange.duration)) {
+                                CMTime livePosition = CMTimeRangeGetEnd(timeRange);
 
-                if (isLive == true) {
-                    CMTimeRange timeRange = [[_player.currentItem.seekableTimeRanges lastObject] CMTimeRangeValue];
-                    CMTime livePosition = CMTimeRangeGetEnd(timeRange);
-                    CMTime difference = CMTimeSubtract(livePosition, _player.currentItem.currentTime);
-                    if (CMTimeGetSeconds(difference) > 1.0) {
-                        [_player seekToTime:livePosition toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+                                if (CMTimeCompare(livePosition, currentItem.currentTime) > 0
+                                    && CMTimeGetSeconds(CMTimeSubtract(livePosition, currentItem.currentTime)) > 1.0) {
+                                    CMTime target = CMTimeSubtract(livePosition,
+                                                                   CMTimeMakeWithSeconds(0.5, NSEC_PER_SEC));
+                                    [_player seekToTime:target toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+                                }
+                            }
+                        }
                     }
                 }
 
-                if (_pipController.pictureInPictureActive == true) {
+                if (_pipController.pictureInPictureActive) {
+                    _isPlaying = true;
                     if (_eventSink != nil) {
                         _eventSink(@{@"event": @"play"});
                     }
