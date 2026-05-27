@@ -459,7 +459,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 
     if (_isPlaying) {
-        if (_player.rate == 0) {
+        if (_player.rate != _playerRate) {
             [_player playImmediatelyAtRate:1.0];
             _player.rate = _playerRate;
         }
@@ -561,7 +561,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         toleranceBefore:kCMTimeZero
          toleranceAfter:kCMTimeZero
       completionHandler:^(BOOL finished){
-          if (wasPlaying){
+          if (wasPlaying && _player.rate != _playerRate){
               _player.rate = _playerRate;
           }
       }];
@@ -583,7 +583,7 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         result([FlutterError errorWithCode:@"unsupported_speed"
                                    message:@"Speed must be >= 0.0 and <= 2.0"
                                    details:nil]);
-    } else if ((speed > 1.0 && _player.currentItem.canPlayFastForward) ||
+    } else if ((speed > 1.0 && speed <= 2.0) ||
                (speed < 1.0 && _player.currentItem.canPlaySlowForward)) {
         _playerRate = speed;
         result(nil);
@@ -596,10 +596,13 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     }
 
     if (_isPlaying){
-        if (@available(iOS 16, *)) {
+        if (@available(iOS 16, *) && _player.defaultRate != speed) {
             _player.defaultRate = speed;
         }
-        _player.rate = speed;
+
+        if (_player.rate != speed) {
+            _player.rate = speed;
+        }
     }
 }
 
