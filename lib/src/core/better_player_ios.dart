@@ -16,6 +16,8 @@ class BetterPlayerIOS extends BetterPlayerBase {
 }
 
 class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
+  Orientation? _lastOrientation;
+
   @override
   void initializeRotationListener() {
     deviceOrientationSubscription =
@@ -53,26 +55,30 @@ class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
   @override
   Widget buildPlayer(BuildContext context) {
     final orientation = MediaQuery.orientationOf(context);
-    final controller = widget.controller;
+    if (orientation != _lastOrientation) {
+      _lastOrientation = orientation;
+      final controller = widget.controller;
 
-    if (betterPlayerConfiguration.enterFullScreenWhenRotate == true &&
-        controller.isPlayerVisible &&
-        controller.isPipMode() == false) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!isFullScreenByRotate &&
-            controller.controlsEnabled &&
-            !controller.isFullScreen &&
-            orientation == Orientation.landscape) {
-          isFullScreenByRotate = true;
-          controller.enterFullScreen();
-        } else if (isFullScreenByRotate &&
-            controller.isFullScreen &&
-            orientation == Orientation.portrait) {
-          controller.exitFullScreen();
-        }
-      });
+      if (betterPlayerConfiguration.enterFullScreenWhenRotate == true &&
+          controller.isPlayerVisible &&
+          controller.isPipMode() == false) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!isFullScreenByRotate &&
+              controller.controlsEnabled &&
+              !controller.isFullScreen &&
+              orientation == Orientation.landscape) {
+            isFullScreenByRotate = true;
+            controller.enterFullScreen();
+          } else if (isFullScreenByRotate &&
+              controller.isFullScreen &&
+              orientation == Orientation.portrait) {
+            controller.exitFullScreen();
+          }
+        });
+      }
     }
-    
+
+
     return VisibilityDetector(
       key: Key("${widget.controller.hashCode}_key"),
       onVisibilityChanged: (VisibilityInfo info) =>
