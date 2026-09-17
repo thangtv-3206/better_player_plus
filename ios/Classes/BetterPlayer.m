@@ -663,11 +663,37 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 }
 
 - (void)pictureInPictureController:(AVPictureInPictureController *)pictureInPictureController restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:(void (^)(BOOL))completionHandler {
-    completionHandler(YES);
     _isRestorePip = true;
     if (_eventSink != nil) {
         _eventSink(@{@"event" : @"restorePip"});
     }
+
+    void (^restoreCompleted)(void) = ^{
+        dispatch_async(dispatch_get_main_queue(), ^{
+            UIWindow *window = UIApplication.sharedApplication.windows.firstObject;
+            [window.rootViewController.view setNeedsLayout];
+            [window.rootViewController.view layoutIfNeeded];
+
+            dispatch_async(dispatch_get_main_queue(), ^{
+                completionHandler(YES);
+            });
+        });
+    };
+
+    if (UIApplication.sharedApplication.applicationState == UIApplicationStateActive) {
+        restoreCompleted();
+        return;
+    }
+
+    __block id observer = nil;
+    observer = [[NSNotificationCenter defaultCenter]
+        addObserverForName:UIApplicationDidBecomeActiveNotification
+                    object:nil
+                     queue:NSOperationQueue.mainQueue
+                usingBlock:^(NSNotification *notification) {
+                    [[NSNotificationCenter defaultCenter] removeObserver:observer];
+                    restoreCompleted();
+                }];
 }
 
 - (void) setAudioTrack:(NSString*) name index:(int) index{
