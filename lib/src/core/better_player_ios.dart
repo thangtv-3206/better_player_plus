@@ -20,6 +20,8 @@ class _BetterPlayerIOSState extends BetterPlayerBaseState<BetterPlayerIOS> {
 
   @override
   void initializeRotationListener() {
+    if (!betterPlayerConfiguration.enterFullScreenWhenRotate) return;
+
     deviceOrientationSubscription =
         deviceOrientationStream.skip(1).listen((deviceOrientation) {
       final controller = widget.controller;
