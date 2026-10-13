@@ -9,6 +9,7 @@ import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Rect
 import android.net.Uri
@@ -69,7 +70,8 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler,
                     activity!!.addContentView(
                         ConstraintLayout(activity!!).apply {
                             tag = PIP_CONTAINER
-                            setBackgroundColor(Color.WHITE)
+                            val isDark = (activity!!.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+                            setBackgroundColor(if (isDark) Color.BLACK else Color.WHITE)
                             addView(
                                 PlayerView(activity!!).apply {
                                     tag = currentBetterPlayer.textureEntry.id()
